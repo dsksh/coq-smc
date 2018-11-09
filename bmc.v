@@ -64,20 +64,15 @@ Fixpoint violate_P (l : list state) (P : property) (k : nat) : Prop :=
   | S k' => violate_P l P k' /\  P (nth k l default)
   end.
 
-Definition Naive_method (l : list state) (I : init)
+Definition Naive_method_body (l : list state) (I : init)
            (T : trans) (P : property) (k : nat) : Prop :=
   ~ (I (nth 0 l default) /\ path l T k /\ ~ violate_P l P k).
 
-
+Definition Naive_method (I : init) (T : trans) (P : property) (k : nat) : Prop :=
+  ss Naive_method_body [] I T P k.
 
 Module test1.
   Local Open Scope Z_scope.
-  
-  Goal forall x y, x + y = y + x.
-  Proof.
-    intros.
-    smt solve.
-  Abort.
   
   Definition ex_I (s : state) : Prop :=
     s = 0%Z.
@@ -89,9 +84,9 @@ Module test1.
     ~ (s = -1)%Z.
 
   Example naive_method_test1 :
-    ss Naive_method [] ex_I ex_T ex_P 5.
+    Naive_method ex_I ex_T ex_P 5.
   Proof.
-    unfold Naive_method.
+    unfold Naive_method; unfold Naive_method_body.
     simpl.
     unfold ex_I; unfold ex_T; unfold  ex_P.
     intros.
@@ -101,10 +96,100 @@ Module test1.
 End test1.
 
 
+Definition neq_nth_mth(si sj : state) : Prop :=
+ ~ (si = sj).
+
+Fixpoint loop_check' (l : list state) (n m : nat) : Prop :=
+  match m with
+  | O => neq_nth_mth (nth n l default) (nth m l default)
+  | S m' => neq_nth_mth (nth n l default) (nth m l default) /\
+            loop_check' l n m'
+  end.
+
+Fixpoint loop_check (l : list state) (k : nat) : Prop :=
+  match k with
+  | O => True
+  | 1 => loop_check' l 1 0
+  | S k' => loop_check' l k k' /\ loop_check l k'
+  end.
+
+    
+Definition loop_free (l : list state) (T : trans) (k : nat) : Prop :=
+  (path l T k /\  loop_check l k). 
+
+Definition lasso (l : list state)
+           (I : init) (T : trans) (P : property) (k : nat) : Prop :=
+  ~ (I (nth 0 l default) /\ loop_free l T k).
+
+Definition violate_loop_free (l : list state)
+           (I : init) (T : trans) (P : property) (k : nat) : Prop :=
+  ~ (loop_free l T k /\ ~ P (nth k l default)).
 
 
+Definition P_state (l : list state) (I : init) (T : trans)
+           (P : property) (k : nat) : Prop :=
+  ~ (I (nth 0 l default) /\ path l T k /\ ~ P (nth k l default)).
+
+Fixpoint safety_by_k (I : init) (T : trans) (P : property) (k : nat) : Prop :=
+  match k with
+  | O => ss P_state [] I T P 0
+  | S k' => safety_by_k I T P k' /\ ss P_state [] I T P k
+  end.
 
 
+Definition Sheeran_method1 (I : init) (T : trans) (P : property) (k : nat) : Prop :=
+  ((ss lasso [] I T P k) \/
+   (ss violate_loop_free [] I T P k)) /\ safety_by_k I T P k.
 
 
+Lemma case1_t1 : forall (i k : nat) (I : init) (T : trans) (P : property),
+    (i < k) /\ safety_by_k I T P k -> ss P_state [] I T P i.
+Proof.
+  intros.
+  induction k.
+  - easy.
+    
+  - destruct H.
+    destruct (Nat.lt_ge_cases i k).
+    + assert (safety_by_k I T P k /\ ss P_state [] I T P k)
+        by (destruct k; firstorder; now rewrite <- plus_n_O in *).
+      now apply IHk.
+    + apply gt_S_le in H.
+      assert (i = k) by omega.      
+      destruct k; rewrite H2; firstorder.
+Qed.
 
+Theorem Proof_Sheeran_method_case1 :
+  forall (I : init) (T : trans) (P : property) (k : nat),
+    Sheeran_method1 I T P k
+    -> (forall (i : nat), (i < k) -> ss P_state [] I T P i).
+Proof.
+  intros.
+  unfold Sheeran_method1 in H.
+  destruct H.
+  apply case1_t1 with (k := k).
+  tauto.
+Qed.
+
+
+Theorem Proof_Sheeran_method_case2 :
+  forall (I : init) (T : trans) (P : property) (k : nat),
+    Sheeran_method1 I T P k
+    -> (forall (i : nat), (i >= k) ->  ss P_state [] I T P i).
+Proof. Admitted.
+
+  
+Theorem Proof_Sheeran_method :
+  forall (I : init) (T : trans) (P : property) (k : nat),
+    Sheeran_method1 I T P k
+    -> (forall (i : nat), ss P_state [] I T P i).
+Proof.
+  intros.
+  destruct (Nat.lt_ge_cases i k).
+  - revert H0.
+    apply Proof_Sheeran_method_case1.
+    easy.
+  - revert H0.
+    apply Proof_Sheeran_method_case2.
+    easy.
+Qed.
