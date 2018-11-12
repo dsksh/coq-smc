@@ -220,41 +220,49 @@ Proof.
 Qed.
 
 
-
 Lemma divide_loop_free : forall  (l : list state) (T : trans) (i j : nat),
  loop_free l T 0 (i+j) -> loop_free l T 0 i /\ loop_free l T i j.
-Proof. Admitted.                                                                      
+Proof.
+Admitted.
 
+
+Lemma case2_t1 : forall (I : init) (T : trans) (P : property) (i k : nat),
+    i >= k ->
+    ss P_state2 [] I T P k -> ss P_state2 [] I T P i.
+Proof. Admitted.
 
 
 Theorem Proof_Sheeran_method_case2 :
   forall (I : init) (T : trans) (P : property) (k : nat),
     Sheeran_method1 I T P k
-    -> (forall (i : nat), (i >= k) ->  ss  [] I T P i).
+    -> (forall (i : nat), (i >= k) -> ss P_state2 [] I T P i).
 Proof.
   intros.
   unfold Sheeran_method1 in H.
   destruct H.
   destruct H.
-  - assert (H3 : i =  k + (i - k)) by omega.
-    unfold lasso in H.
-
-
-    
-Admitted.
+  - apply case2_t1 with (k := k).
+    apply H0.
+    revert H.
+    apply ss_property.
+    firstorder.
+  - apply case2_t1 with (k := k).
+    apply H0.
+    revert H.
+    apply ss_property.
+    firstorder.
+Qed.
 
   
 Theorem Proof_Sheeran_method :
   forall (I : init) (T : trans) (P : property) (k : nat),
     Sheeran_method1 I T P k
-    -> (forall (i : nat), ss P_state [] I T P i).
+    -> (forall (i : nat), ss P_state2 [] I T P i).
 Proof.
   intros.
   destruct (Nat.lt_ge_cases i k).
   - revert H0.
-    apply Proof_Sheeran_method_case1.
-    easy.
+    now  apply Proof_Sheeran_method_case1.
   - revert H0.
-    apply Proof_Sheeran_method_case2.
-    easy.
+    now apply Proof_Sheeran_method_case2.
 Qed.
