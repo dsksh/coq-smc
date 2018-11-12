@@ -99,41 +99,41 @@ End test1.
 Definition neq_nth_mth(si sj : state) : Prop :=
  ~ (si = sj).
 
-Fixpoint loop_check' (l : list state) (n m : nat) : Prop :=
+Fixpoint loop_check' (l : list state) (o n m : nat) : Prop :=
   match m with
-  | O => neq_nth_mth (nth n l default) (nth m l default)
-  | S m' => neq_nth_mth (nth n l default) (nth m l default) /\
-            loop_check' l n m'
+  | O => neq_nth_mth (nth (o+n) l default) (nth (o+m) l default)
+  | S m' => neq_nth_mth (nth (o+n) l default) (nth (o+m) l default) /\
+            loop_check' l o n m'
   end.
 
-Fixpoint loop_check (l : list state) (k : nat) : Prop :=
+Fixpoint loop_check (l : list state) (o k : nat) : Prop :=
   match k with
   | O => True
-  | 1 => loop_check' l 1 0
-  | S k' => loop_check' l k k' /\ loop_check l k'
+  | 1 => loop_check' l o 1 0
+  | S k' => loop_check' l o k k' /\ loop_check l o k'
   end.
 
     
-Definition loop_free (l : list state) (T : trans) (k : nat) : Prop :=
-  (path l T k /\  loop_check l k). 
+Definition loop_free (l : list state) (T : trans) (o k : nat) : Prop :=
+  (path l T k /\  loop_check l o k). 
 
 Definition lasso (l : list state)
            (I : init) (T : trans) (P : property) (k : nat) : Prop :=
-  ~ (I (nth 0 l default) /\ loop_free l T k).
+  ~ (I (nth 0 l default) /\ loop_free l T 0 k).
 
 Definition violate_loop_free (l : list state)
            (I : init) (T : trans) (P : property) (k : nat) : Prop :=
-  ~ (loop_free l T k /\ ~ P (nth k l default)).
+  ~ (loop_free l T 0 k /\ ~ P (nth k l default)).
 
 
-Definition P_state (l : list state) (I : init) (T : trans)
+Definition P_state1 (l : list state) (I : init) (T : trans)
            (P : property) (k : nat) : Prop :=
   ~ (I (nth 0 l default) /\ path l T k /\ ~ P (nth k l default)).
 
 Fixpoint safety_by_k (I : init) (T : trans) (P : property) (k : nat) : Prop :=
   match k with
-  | O => ss P_state [] I T P 0
-  | S k' => safety_by_k I T P k' /\ ss P_state [] I T P k
+  | O => ss P_state1 [] I T P 0
+  | S k' => safety_by_k I T P k' /\ ss P_state1 [] I T P k
   end.
 
 
@@ -142,8 +142,14 @@ Definition Sheeran_method1 (I : init) (T : trans) (P : property) (k : nat) : Pro
    (ss violate_loop_free [] I T P k)) /\ safety_by_k I T P k.
 
 
+Definition P_state2 (l : list state) (I : init) (T : trans)
+           (P : property) (k : nat) : Prop :=
+  ~ (I (nth 0 l default) /\ loop_free l T 0 k /\ ~ P (nth k l default)).
+
+
+
 Lemma case1_t1 : forall (i k : nat) (I : init) (T : trans) (P : property),
-    (i < k) /\ safety_by_k I T P k -> ss P_state [] I T P i.
+    (i < k) /\ safety_by_k I T P k -> ss P_state1 [] I T P i.
 Proof.
   intros.
   induction k.
@@ -151,7 +157,7 @@ Proof.
     
   - destruct H.
     destruct (Nat.lt_ge_cases i k).
-    + assert (safety_by_k I T P k /\ ss P_state [] I T P k)
+    + assert (safety_by_k I T P k /\ ss P_state1 [] I T P k)
         by (destruct k; firstorder; now rewrite <- plus_n_O in *).
       now apply IHk.
     + apply gt_S_le in H.
@@ -159,24 +165,83 @@ Proof.
       destruct k; rewrite H2; firstorder.
 Qed.
 
+
+Lemma case1_t2 : forall (i : nat) (I : init) (T : trans) (P : property),
+  ss P_state1 [ ] I T P i -> ss P_state2 [ ] I T P i.
+Proof.
+  intros.
+  induction i.
+  - firstorder.
+
+  - assert (ss P_state2 [ ] I T P (S i) <->
+            forall s' : state, ss P_state2 [s'] I T P i )
+      by (destruct i; firstorder).
+    apply H0.
+Admitted.    
+
+
+Lemma case1_t2' : forall (l : list state)(I : init)
+                     (T : trans) (P : property) (i : nat),
+    P_state1 l I T P i -> P_state2 l I T P i.
+Proof.
+  firstorder.
+Qed.
+
+
+
+Lemma ss_property : forall (f g : list state -> init -> trans -> property -> nat -> Prop)
+                       (I : init)  (T : trans)
+                       (P : property),
+    (forall l, forall j, f l I T P j -> g l I T P j)
+    -> (forall i, ss f [] I T P i -> ss g [] I T P i).
+Proof.
+  intros.
+  induction i.
+  - simpl in *.
+    firstorder.    
+  - unfold ss.
+Admitted.
+
 Theorem Proof_Sheeran_method_case1 :
   forall (I : init) (T : trans) (P : property) (k : nat),
     Sheeran_method1 I T P k
-    -> (forall (i : nat), (i < k) -> ss P_state [] I T P i).
+    -> (forall (i : nat), (i < k) -> ss P_state2 [] I T P i).
 Proof.
   intros.
   unfold Sheeran_method1 in H.
   destruct H.
-  apply case1_t1 with (k := k).
-  tauto.
+  assert (i < k /\ safety_by_k I T P k) by easy.
+  apply case1_t1 in H2.
+
+  revert H2.
+  apply ss_property.
+  intros.
+  firstorder.
 Qed.
+
+
+
+Lemma divide_loop_free : forall  (l : list state) (T : trans) (i j : nat),
+ loop_free l T 0 (i+j) -> loop_free l T 0 i /\ loop_free l T i j.
+Proof. Admitted.                                                                      
+
 
 
 Theorem Proof_Sheeran_method_case2 :
   forall (I : init) (T : trans) (P : property) (k : nat),
     Sheeran_method1 I T P k
-    -> (forall (i : nat), (i >= k) ->  ss P_state [] I T P i).
-Proof. Admitted.
+    -> (forall (i : nat), (i >= k) ->  ss  [] I T P i).
+Proof.
+  intros.
+  unfold Sheeran_method1 in H.
+  destruct H.
+  destruct H.
+  - assert (H3 : i =  k + (i - k)) by omega.
+    unfold lasso in H.
+
+
+    
+Admitted.
 
   
 Theorem Proof_Sheeran_method :
