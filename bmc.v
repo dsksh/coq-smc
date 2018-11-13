@@ -50,11 +50,11 @@ Fixpoint ss A (f : list A -> init -> trans -> property -> nat -> Prop)
   | S n' => forall s0 : A, ss f (l++[s0]) I T P n'
   end.
 
-Fixpoint path (l : list state) (T : trans) (len : nat) : Prop :=
+Fixpoint path (l : list state) (T : trans) (o len : nat) : Prop :=
   match len with
   | O => True
-  | S O => T (nth 0 l default) (nth 1 l default)
-  | S len' => path l T len' /\ T (nth len' l default) (nth len l default)
+  | S O => T (nth o l default) (nth (o+1) l default)
+  | S len' => path l T o len' /\ T (nth (len'+o) l default) (nth (len+o) l default)
   end.
 
 
@@ -66,7 +66,7 @@ Fixpoint violate_P (l : list state) (P : property) (k : nat) : Prop :=
 
 Definition Naive_method_body (l : list state) (I : init)
            (T : trans) (P : property) (k : nat) : Prop :=
-  ~ (I (nth 0 l default) /\ path l T k /\ ~ violate_P l P k).
+  ~ (I (nth 0 l default) /\ path l T 0 k /\ ~ violate_P l P k).
 
 Definition Naive_method (I : init) (T : trans) (P : property) (k : nat) : Prop :=
   ss Naive_method_body [] I T P k.
@@ -115,7 +115,7 @@ Fixpoint loop_check (l : list state) (o k : nat) : Prop :=
 
     
 Definition loop_free (l : list state) (T : trans) (o k : nat) : Prop :=
-  (path l T k /\  loop_check l o k). 
+  (path l T o k /\  loop_check l o k). 
 
 Definition lasso (l : list state)
            (I : init) (T : trans) (P : property) (k : nat) : Prop :=
@@ -128,7 +128,7 @@ Definition violate_loop_free (l : list state)
 
 Definition P_state1 (l : list state) (I : init) (T : trans)
            (P : property) (k : nat) : Prop :=
-  ~ (I (nth 0 l default) /\ path l T k /\ ~ P (nth k l default)).
+  ~ (I (nth 0 l default) /\ path l T 0 k /\ ~ P (nth k l default)).
 
 Fixpoint safety_by_k (I : init) (T : trans) (P : property) (k : nat) : Prop :=
   match k with
@@ -145,7 +145,6 @@ Definition Sheeran_method1 (I : init) (T : trans) (P : property) (k : nat) : Pro
 Definition P_state2 (l : list state) (I : init) (T : trans)
            (P : property) (k : nat) : Prop :=
   ~ (I (nth 0 l default) /\ loop_free l T 0 k /\ ~ P (nth k l default)).
-
 
 
 Lemma case1_t1 : forall (i k : nat) (I : init) (T : trans) (P : property),
@@ -197,10 +196,166 @@ Proof.
 Qed.
 
 
+Lemma divide_lc1 : forall (l : list state) (j i : nat), 
+        loop_check l 0 (i+j) -> loop_check l 0 i.
+Proof.
+  induction j.
+  - intros.  rewrite <- plus_n_O in H.
+    easy.
+  - intros.
+    rewrite <- Nat.add_succ_comm in H.
+    apply IHj in H.
+    assert(loop_check l 0 (S i) <-> loop_check l 0 i /\
+                                    loop_check' l 0 (S i) i)
+      by (destruct i; firstorder).
+    apply H0 in H.
+    firstorder.
+Qed.
+
+Lemma divide_lc2'' : forall (l : list state) (i j k : nat) ,
+        loop_check' l i (S k) (S j) <->
+        neq_nth_mth (nth (i + (S k)) l default) (nth i l default) /\
+        loop_check' l (S i) k j.
+Proof.
+  destruct j.
+  - simpl. rewrite <-  plus_n_O.
+    intros.
+    now rewrite <- Nat.add_succ_l;
+      rewrite Nat.add_succ_comm; rewrite Nat.add_1_r.
+  - induction j.
+    + simpl.
+      intros.
+      now rewrite <- Nat.add_succ_r; rewrite <- Nat.add_succ_r;
+        rewrite <-  Nat.add_1_r; rewrite <- (plus_n_O i);
+          rewrite <- (Nat.add_1_r i).
+    + intros.
+      simpl in *.
+      assert(neq_nth_mth (nth (i + S k) l default) (nth i l default) /\
+             neq_nth_mth (nth (S (i + k)) l default) (nth (S (i + S (S j))) l default) /\
+             neq_nth_mth (nth (S (i + k)) l default) (nth (S (i + S j)) l default) /\
+             loop_check' l (S i) k j <->
+             (neq_nth_mth (nth (i + S k) l default) (nth i l default) /\
+              neq_nth_mth (nth (S (i + k)) l default) (nth (S (i + S j)) l default) /\
+              loop_check' l (S i) k j ) /\
+             neq_nth_mth (nth (S (i + k)) l default) (nth (S (i + S (S j))) l default))
+        by tauto.
+      now rewrite H; rewrite <- IHj; rewrite <- Nat.add_succ_r;
+        rewrite <- Nat.add_succ_r.
+Qed. (*26*)
+
+
+Lemma divide_lc2' : forall (l : list state) (j i : nat),
+    loop_check l i (S j) -> loop_check l (S i) j.
+Proof.
+  induction j.
+  intros.
+  - destruct i; firstorder.
+  - intros.
+    assert(loop_check l (S i) (S j) <->
+           loop_check' l (S i) (S j) j /\ loop_check l (S i) j)
+      by (destruct j; firstorder).
+    apply H0.
+    assert(loop_check l i (S (S j)) <->
+           loop_check' l i (S (S j)) (S j) /\ loop_check l i (S j))
+      by (destruct j; firstorder).
+    apply -> H1 in H.
+    destruct H.    
+    split. 
+    now apply divide_lc2'' in H.
+    now apply IHj in H2.
+Qed. (*19*)
+
+
+Lemma divide_lc2 : forall (l : list state) (i j : nat),
+    loop_check l 0 (i+j) -> loop_check l i j.
+Proof.
+  induction i.
+  - easy.
+  - intros.
+    rewrite Nat.add_succ_comm in H.
+    apply IHi in H.
+    now apply divide_lc2' in H.
+Qed. (*7*)
+
+
+Lemma divide_loop_check : forall (l : list state) (i j: nat),
+    loop_check l 0 (i+j) ->
+    loop_check l 0 i /\ loop_check l i j.
+Proof.
+  intros.
+  split.
+  - now apply divide_lc1 in H.
+  - now apply divide_lc2 in H.
+Qed.
+
+
+Lemma divide_tl_path : forall (l : list state) (T : trans) (i : nat),
+    path l T 0 (S i) <->
+    path l T 0 i /\ T (nth i l default) (nth (S i) l default).
+Proof.
+  intros. 
+  destruct i. 
+  - unfold path.
+    tauto.
+  - unfold path; fold path; simpl.
+    rewrite <- plus_n_O.
+    tauto.
+Qed. (*8*)
+
+
+Lemma divide_hd_path : forall (l : list state) (T : trans) (i j : nat),
+    T (nth i l default) (nth (S i) l default) /\ path l T (S i) j <->
+    path l T i (S j).
+Proof.
+  destruct j.
+  - unfold path. simpl.
+    rewrite Nat.add_1_r.
+    tauto.
+   
+  - induction j. simpl. 
+    rewrite Nat.add_1_r.
+    tauto.
+    simpl. 
+    split; firstorder; now rewrite Nat.add_succ_r in *.
+Qed. (*13*)
+
+
+Lemma shift_path : forall (l : list state) (T : trans) (i j : nat), 
+  path l T 0 i /\ path l T i (S j) <-> 
+  path l T 0 (S i) /\ path l T (S i) j .
+Proof.
+  intros.
+  rewrite divide_tl_path.
+  rewrite and_assoc.
+  rewrite divide_hd_path.
+  reflexivity.
+Qed. (*5*)
+
+Lemma divide_path : forall (l : list state) (T : trans) (i j: nat),
+    path l T 0 (i+j) -> path l T 0 i /\ path l T i j.
+Proof.
+  induction i.
+  - simpl.
+    tauto.
+
+  - intros.
+    rewrite -> Nat.add_succ_comm in H.
+    apply IHi in H.
+    apply shift_path.
+    apply H.
+Qed. (*8*)
+
 Lemma divide_loop_free : forall  (l : list state) (T : trans) (i j : nat),
  loop_free l T 0 (i+j) -> loop_free l T 0 i /\ loop_free l T i j.
 Proof.
-Admitted.
+  unfold loop_free.
+  intros.
+
+  destruct H.
+  apply divide_path in H.
+  apply divide_loop_check in H0.
+  tauto.
+Qed.
 
 
 Lemma case2_t1 : forall (I : init) (T : trans) (P : property) (i k : nat),
