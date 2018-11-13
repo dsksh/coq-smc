@@ -166,34 +166,11 @@ Proof.
 Qed.
 
 
-Lemma case1_t2 : forall (i : nat) (I : init) (T : trans) (P : property),
-  ss P_state1 [ ] I T P i -> ss P_state2 [ ] I T P i.
-Proof.
-  intros.
-  induction i.
-  - firstorder.
-
-  - assert (ss P_state2 [ ] I T P (S i) <->
-            forall s' : state, ss P_state2 [s'] I T P i )
-      by (destruct i; firstorder).
-    apply H0.
-Admitted.    
-
-
-Lemma case1_t2' : forall (l : list state)(I : init)
-                     (T : trans) (P : property) (i : nat),
-    P_state1 l I T P i -> P_state2 l I T P i.
-Proof.
-  firstorder.
-Qed.
-
-
-
 Lemma ss_property : forall (f g : list state -> init -> trans -> property -> nat -> Prop)
                        (I : init)  (T : trans)
-                       (P : property),
-    (forall l, forall j, f l I T P j -> g l I T P j)
-    -> (forall i, ss f [] I T P i -> ss g [] I T P i).
+                       (P : property) (i : nat),
+    (forall l, f l I T P i -> g l I T P i)
+    -> (ss f [] I T P i -> ss g [] I T P i).
 Proof.
   intros.
   induction i.
