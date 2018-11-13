@@ -358,12 +358,6 @@ Proof.
 Qed.
 
 
-Lemma case2_t1 : forall (I : init) (T : trans) (P : property) (i k : nat),
-    i >= k ->
-    ss P_state2 [] I T P k -> ss P_state2 [] I T P i.
-Proof. Admitted.
-
-
 Theorem Proof_Sheeran_method_case2 :
   forall (I : init) (T : trans) (P : property) (k : nat),
     Sheeran_method1 I T P k
@@ -372,8 +366,15 @@ Proof.
   intros.
   unfold Sheeran_method1 in H.
   destruct H.
+  pose (P_state3 := fun l => I (nth 0 l default) /\ loop_free l T 0 k /\
+                       loop_free l T k (i-k) /\ P (nth i l default)).
+
   destruct H.
-  - apply case2_t1 with (k := k).
+  -
+
+    
+
+    apply case2_t1 with (k := k).
     apply H0.
     revert H.
     apply ss_property.
