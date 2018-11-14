@@ -35,8 +35,9 @@ Definition property : Type := (nat -> state) -> Prop.*)
 
 Set Implicit Arguments.
 
-Definition state : Type :=  Z.
-Definition default := 99999%Z.
+Definition state : Type := nat -> Z.
+
+Definition default := fun x : nat => 99999%Z.
 
 Definition init : Type := state -> Prop.
 Definition trans : Type := state -> state -> Prop.
@@ -49,6 +50,8 @@ Fixpoint ss A (f : list A -> init -> trans -> property -> nat -> Prop)
   | 0 => forall s0 : A, f (l++[s0]) I T P (length l)
   | S n' => forall s0 : A, ss f (l++[s0]) I T P n'
   end.
+
+
 
 Fixpoint path (l : list state) (T : trans) (o len : nat) : Prop :=
   match len with
@@ -72,16 +75,15 @@ Definition Naive_method (I : init) (T : trans) (P : property) (k : nat) : Prop :
   ss Naive_method_body [] I T P k.
 
 Module test1.
-  Local Open Scope Z_scope.
   
   Definition ex_I (s : state) : Prop :=
-    s = 0%Z.
+    s 0 = 0%Z.
 
   Definition ex_T (si sj : state) : Prop :=
-    sj = (si + 1)%Z.
+    sj 0 = (si 0%nat + 1)%Z.
  
   Definition ex_P (s : state) : Prop :=
-    ~ (s = -1)%Z.
+    ~ (s 0%nat = -1)%Z.
 
   Example naive_method_test1 :
     Naive_method ex_I ex_T ex_P 5.
@@ -90,13 +92,12 @@ Module test1.
     simpl.
     unfold ex_I; unfold ex_T; unfold  ex_P.
     intros.
-    unfold state.
     smt solve; apply by_smt.
   Qed.
 End test1.
 
 
-Definition neq_nth_mth(si sj : state) : Prop :=
+Definition neq_nth_mth (si sj : state) : Prop :=
  ~ (si = sj).
 
 Fixpoint loop_check' (l : list state) (o n m : nat) : Prop :=
@@ -172,11 +173,11 @@ Lemma ss_property : forall (f g : list state -> init -> trans -> property -> nat
     -> (ss f [] I T P i -> ss g [] I T P i).
 Proof.
   intros.
-  induction i.
-  - simpl in *.
-    firstorder.    
-  - unfold ss.
+  unfold ss.
+  
 Admitted.
+
+
 
 Theorem Proof_Sheeran_method_case1 :
   forall (I : init) (T : trans) (P : property) (k : nat),
@@ -358,6 +359,22 @@ Proof.
 Qed.
 
 
+
+
+
+
+Lemma case2_t1 : forall (I : init) (T : trans) (P : property) (i k : nat),
+    i >= k ->  ss lasso [ ] I T P k -> ss P_state2 [ ] I T P i.
+Proof.
+  intros.
+  assert (forall l : list state, lasso l I T P k ->  P_state2 l I T P i) by apply by_smt.
+Admitted.
+
+
+Lemma case2_t2 : forall (I : init) (T : trans) (P : property) (i k : nat),
+    i >= k ->  ss violate_loop_free [ ] I T P k -> ss P_state2 [ ] I T P i.
+Proof. Admitted.
+
 Theorem Proof_Sheeran_method_case2 :
   forall (I : init) (T : trans) (P : property) (k : nat),
     Sheeran_method1 I T P k
@@ -366,24 +383,11 @@ Proof.
   intros.
   unfold Sheeran_method1 in H.
   destruct H.
-  pose (P_state3 := fun l => I (nth 0 l default) /\ loop_free l T 0 k /\
-                       loop_free l T k (i-k) /\ P (nth i l default)).
 
   destruct H.
-  -
+  - now apply case2_t1 with (k := k).
 
-    
-
-    apply case2_t1 with (k := k).
-    apply H0.
-    revert H.
-    apply ss_property.
-    firstorder.
-  - apply case2_t1 with (k := k).
-    apply H0.
-    revert H.
-    apply ss_property.
-    firstorder.
+  - now apply case2_t2 with (k := k).
 Qed.
 
   
