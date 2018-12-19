@@ -39,11 +39,18 @@ Definition init : Type := state -> Prop.
 Definition trans : Type := state -> state -> Prop.
 Definition property : Type := state -> Prop.
 
-Fixpoint ss (f : list state -> nat -> Prop) (l : list state) (n : nat) : Prop :=
-  match n with
-  | 0 => forall s0 : state, f (l++[s0]) (length l)
-  | S n' => forall s0 : state, ss f (l++[s0]) n'
+
+
+Fixpoint ss_body (f : list state -> nat -> Prop)
+         (l : list state) (iter n : nat) : Prop :=
+  match iter with
+  | 0 => forall s0 : state, f (l++[s0]) n
+  | S iter' => forall s0 : state, ss_body f (l++[s0]) iter' n
   end.
+
+Definition ss (f : list state -> nat -> Prop)
+           (l : list state) (n : nat) : Prop :=
+  ss_body f l n n.
 
 (*
 Fixpoint ss_body (f : list state -> nat -> Prop) (l : list state) (iter n : nat) : Prop :=
@@ -76,29 +83,27 @@ Definition Naive_method_body  (I : init) (T : trans) (P : property)
 Definition Naive_method (I : init) (T : trans) (P : property) (k : nat) : Prop :=
   ss (Naive_method_body I T P) [] k.
 
-Module test1.
   
-  Definition ex_I (s : state) : Prop :=
-    s = 0%Z.
+Definition ex_I (s : state) : Prop :=
+  s = 0%Z.
 
-  Definition ex_T (si sj : state) : Prop :=
-    sj = (si + 1)%Z.
+Definition ex_T (si sj : state) : Prop :=
+  sj = (si + 1)%Z.
  
-  Definition ex_P (s : state) : Prop :=
-    ~ (s = -1)%Z.
+Definition ex_P (s : state) : Prop :=
+  ~ (s = -1)%Z.
 
-  Example naive_method_test1 :
-    Naive_method ex_I ex_T ex_P 5.
-  Proof.
-    unfold Naive_method; unfold Naive_method_body.
-    unfold ss.
-    simpl.
-    unfold ex_I; unfold ex_T; unfold  ex_P.
-    intros.
-    unfold state.
-    smt solve; apply by_smt.
-  Qed.
-End test1.
+Example naive_method_test1 :
+  Naive_method ex_I ex_T ex_P 5.
+Proof.
+  unfold Naive_method; unfold Naive_method_body.
+  unfold ss.
+  simpl.
+  unfold ex_I; unfold ex_T; unfold  ex_P.
+  intros.
+  unfold state.
+  smt solve; apply by_smt.
+Qed.
 
 
 Definition neq_nth_mth (si sj : state) : Prop :=
@@ -132,6 +137,7 @@ Definition violate_loop_free (I : init) (T : trans) (P : property)
 
 
 Definition P_state1 (I : init) (T : trans) (P : property)
+
            (l : list state) (k : nat) : Prop :=
   ~ (I (nth 0 l default) /\ path T l 0 k /\ ~ P (nth k l default)).
 
@@ -153,9 +159,11 @@ Definition P_state2  (I : init) (T : trans) (P : property)
 
 
 Lemma ss_property : forall (f g : list state -> nat -> Prop) (i j : nat),
-  (forall l, f l i -> g l j) -> (ss f [] i -> ss g [] j).
+    ((forall l, length l >= i -> f l i) -> forall l, length l >= j -> g l j)
+    -> (ss f [] i -> ss g [] j).
 Proof.
-  firstorder.
+ intros.
+
 Admitted.
 
 
@@ -176,6 +184,7 @@ Proof.
       destruct k; rewrite H2; firstorder.
 Qed.
 
+
 Theorem Proof_Sheeran_method_case1 :
   forall (I : init) (T : trans) (P : property) (k : nat),
     Sheeran_method1 I T P k
@@ -187,19 +196,15 @@ Proof.
   assert (i < k /\ safety_by_k I T P k) by easy.
   apply case1_t1 in H2.
 
+  
   revert H2.
   apply ss_property.
-  intros.
-  unfold P_state2.
-  unfold P_state1 in H2.
-
-
   firstorder.
 Qed.
 
 
 Lemma divide_lc1 : forall (l : list state) (j i : nat), 
-        loop_check l 0 (i+j) -> loop_check l 0 i.
+  loop_check l 0 (i+j) -> loop_check l 0 i.
 Proof.
   induction j.
   - intros.  rewrite <- plus_n_O in H.
@@ -370,20 +375,68 @@ Proof.
   apply neg_false.
   split. 
   intros.
-  destruct H1.
   destruct H2.
+  destruct H3.
   assert (i = k + (i - k)) by omega.
-  rewrite H4 in H2.
-  apply divide_loop_free in H2.
+  rewrite H5 in H3.
+  apply divide_loop_free in H3.
+  assert (length l >= k) by omega.  
+  apply H0 in H6.
   tauto.
   tauto.
 Qed.
 
 
+Lemma case2_t2' : forall (T : trans) (P : property) (i k : nat) (l : list state),
+    i >= k -> length l >= i ->
+    (forall l : list state, length l >= k -> ~ (loop_free T l 0 k /\ ~ P (nth k l default)))
+    ->  ~ (loop_free T l (i - k) k /\ ~ P (nth i l default)).
+Proof.
+  intros.
+  apply neg_false.
+  split.
+  intros.
+  induction k.
+  unfold loop_free in *.
+  simpl in *.
+  induction l.
+  simpl in H0.
+  assert (i = 0) by omega.
+  rewrite H3 in H2.
+  simpl in H2.
+  unfold state in *.
+
+
+Admitted.
+
+
+
 Lemma case2_t2 : forall (I : init) (T : trans) (P : property) (i k : nat),
     i >= k ->  ss (violate_loop_free I T P) [] k -> ss (P_state2 I T P) [] i.
 Proof.
-Admitted.
+  intros.
+  revert H0.
+  apply ss_property.
+  intros.
+  unfold P_state2.
+  apply neg_false.
+  split.
+  intros.
+  destruct H2.
+  destruct H3.
+  assert (i = (i - k) + k) by omega.
+  rewrite H5 in H3.
+  apply divide_loop_free in H3.
+  destruct H3.
+  assert (loop_free T l (i - k) k /\  ~ P (nth i l default)) by tauto.
+  unfold violate_loop_free in H0.
+
+  apply case2_t2' with (i := i) (l := l) in H0.
+  auto.
+  auto.
+  auto.
+  tauto.
+Qed.
   
 
 Theorem Proof_Sheeran_method_case2 :
@@ -405,7 +458,7 @@ Qed.
 Theorem Proof_Sheeran_method :
   forall (I : init) (T : trans) (P : property) (k : nat),
     Sheeran_method1 I T P k
-    -> (forall (i : nat), ss P_state2 [] I T P i).
+    -> (forall (i : nat), ss (P_state2 I T P) [] i).
 Proof.
   intros.
   destruct (Nat.lt_ge_cases i k).
