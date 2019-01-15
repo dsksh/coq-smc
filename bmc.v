@@ -415,64 +415,66 @@ Fixpoint itl (l : list state) (i : nat) : list state :=
   end.
 
 
-
 Lemma aaa : forall (T : trans) (i k : nat),
     i > S k ->
     forall l : list state, length l > i
     -> ~ path T (itl l (i - S k)) 0 (S k)
     -> ~ path T (itl l (i - k)) 0 k.
-Proof. Admitted.
-
-Lemma aa : forall (T : trans) (i k : nat),
-    i > S k ->
-    forall l : list state, length l > i
-    ->  ~ (T (nth (i - S k) l default) (nth (i - k) l default) /\
-                    path T l (i - k) k) 
-    ->  ~ path T l (i - S k) (S k).
-Proof. Admitted.
-
-
-Lemma a : forall (T : trans) (i k : nat),
-    i > k ->
-    forall l : list state, length l > i ->
-      ~ path T (itl l (i - k)) 0 k
-      -> ~ path T l (i - k) k.
 Proof.
   intros.
-  induction k.
+  assert (H2 : forall A B, (~ A -> ~ B) <-> (B -> A)) by (intros; tauto).
+  revert H1.
+  apply H2.
+  intros.
+  apply divide_hd_path.
+
+
+Admitted.
+
+
+Lemma a : forall (T : trans) (i j : nat),
+    forall l : list state,
+    path T l j i
+    -> path T (itl l j) 0 i.
+Proof.
+  intros.
+  induction i.
   - auto.
+
+  - assert (path T (itl l j) 0 (S i) <->
+            path T (itl l j) 0 i /\ T (nth i (itl l j) default) (nth (S i) (itl l j) default)).
+    {
+    destruct i. firstorder.
+    unfold path; fold path.
+    simpl.
+    rewrite <- plus_n_O.
+    tauto.
+    }
+    apply H0.
+    clear H0.
+
+    split.
+    apply IHi.
+    destruct i; firstorder.
+    clear IHi.
     
-  - apply aa.
-    auto. auto.
-    
-    assert (H2 : ~ (T (nth (i - S k) l default) (nth (i - k) l default) /\
-               path T l (i - k) k) <->
-            ~ T (nth (i - S k) l default) (nth (i - k) l default) \/
-            ~ path T l (i - k) k) by tauto.
-    apply H2.
-    clear H2.
-    right.
-    apply IHk.
-    omega.
-
-    apply aaa.
-    auto. auto. auto.
-Qed.    
 
 
-Lemma b : forall (i k : nat),
-    i > k ->
-    forall l : list state,  length l > i ->
-    ~ loop_check (itl l (i - k)) 0 k
-    -> ~ loop_check l (i - k) k .
+Admitted.
+
+
+Lemma b : forall (i j : nat),
+    forall l : list state, 
+    loop_check l j i
+    -> loop_check (itl l j) 0 i.
 Proof. Admitted.
 
 
 Lemma c : forall (P : property) (i k : nat),
+    forall l : list state,
     i > k ->
-    forall l : list state, length l > i ->
-    P (nth k (itl l (i - k)) default)
-    -> P (nth i l default).
+    ~ P (nth i l default)
+    -> ~ P (nth k (itl l (i - k)) default).
 Proof. Admitted.
 
 
@@ -489,41 +491,19 @@ Proof.
   omega.
   apply H0 in H2.
   clear H0.
-
+  assert (H0 : forall A B, (~ A -> ~ B) <-> (B -> A)) by (intros; tauto).
+  revert H2.
+  apply H0.
+  clear H0.
+  intros.
   unfold loop_free in *. 
-
-
-  assert (H3 : ~ path T (itl l (i - k)) 0 k \/ ~ loop_check (itl l (i - k)) 0 k \/
-          P (nth k (itl l (i - k)) default)).
-  tauto.
-
-
-  clear H2.
-
-  assert (H2 : ~ path T l (i - k) k \/ ~ loop_check l (i - k) k \/  P (nth i l default)
-           ->  ~ ((path T l (i - k) k /\ loop_check l (i - k) k) /\ ~ P (nth i l default))).
-  tauto.
-
-  apply H2.
-  clear H2.
-
-  destruct H3.
-  left.
-  apply a.
-  auto. auto. auto.
-
   destruct H0.
-  right.
-  left.
-  apply b.
-  auto. auto. auto.
-
-  right.
-  right.
-  apply c with (k := k).
-  auto. auto. auto.
+  destruct H0.
+  apply a in H0.
+  apply b in H3.
+  apply c with (k := k) in H2.
+  auto. auto.
 Qed.
-
 
 Lemma d : forall (i k : nat),
     i > k ->
@@ -544,46 +524,9 @@ Proof.
   auto.
   intros.
   apply H0.
-
   apply d.
   auto. auto.
 Qed.
-
-
-(*
-  (*kについての帰納法*)
-  induction k.
-  + unfold loop_free in *.
-    simpl in *.
-
-    assert (~ ((True /\ True) /\ ~ P (nth i l default)) <->
-            ~~ P (nth i l default)) by tauto.
-    assert ((forall l : list state, length l > 0
-                              -> ~ ((True /\ True) /\ ~ P (nth 0 l default)))
-            <->
-            (forall l : list state,length l > 0
-                               -> ~~ P (nth 0 l default))) by firstorder.
-
-
-    apply H2.
-    rewrite H3 in H1.
-    clear H2 H3.
-
-    apply lll1.
-    tauto.
-    tauto.
-  + 
-
-
-    assert (forall l : list state,
-               length l > S k ->
-               ~ (loop_free T l 0 k /\ ~ P (nth k l default))).
-    apply by_smt.
-    
-
-*)
-
-
 
 
 Lemma case2_t2 : forall (I : init) (T : trans) (P : property) (i k : nat),
