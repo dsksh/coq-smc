@@ -159,15 +159,14 @@ Definition P_state2  (I : init) (T : trans) (P : property)
 
 
 Lemma ss_property : forall (f g : list state -> nat -> Prop) (i j : nat),
-    ((forall l, length l >= i -> f l i) -> forall l, length l >= j -> g l j)
+    ((forall l, length l > i -> f l i) -> forall l, length l > j -> g l j)
     -> (ss f [] i -> ss g [] j).
 Proof.
  intros.
-
 Admitted.
 
 
-Lemma case1_t1 : forall (i k : nat) (I : init) (T : trans) (P : property),
+Lemma case1_t1' : forall (i k : nat) (I : init) (T : trans) (P : property),
     (i < k) /\ safety_by_k I T P k -> ss (P_state1 I T P) [] i.
 Proof.
   intros.
@@ -185,15 +184,36 @@ Proof.
 Qed.
 
 
+Lemma case1_t1 : forall (i k : nat) (I : init) (T : trans) (P : property),
+    (i <= k) /\ safety_by_k I T P k -> ss (P_state1 I T P) [] i.
+Proof.
+  intros.
+  destruct H.
+  assert (i <= k <-> i < k \/ i = k) by omega.
+  apply H1 in H.
+  destruct H.
+  apply case1_t1' with (k := k).
+  tauto.
+  subst.
+
+  destruct k.
+  tauto.
+  assert (safety_by_k I T P k /\ ss (P_state1 I T P) [] (S k)).
+  destruct k; firstorder.
+
+  firstorder.
+Qed.
+
+
 Theorem Proof_Sheeran_method_case1 :
   forall (I : init) (T : trans) (P : property) (k : nat),
     Sheeran_method1 I T P k
-    -> (forall (i : nat), (i < k) -> ss (P_state2 I T P) [] i).
+    -> (forall (i : nat), (i <= k) -> ss (P_state2 I T P) [] i).
 Proof.
   intros.
   unfold Sheeran_method1 in H.
   destruct H.
-  assert (i < k /\ safety_by_k I T P k) by easy.
+  assert (i <= k /\ safety_by_k I T P k) by easy.
   apply case1_t1 in H2.
 
   
@@ -365,7 +385,7 @@ Proof.
 Qed.
 
 Lemma case2_t1 : forall (I : init) (T : trans) (P : property) (i k : nat),
-    i >= k ->  ss (lasso I T P) [] k -> ss (P_state2 I T P) [] i.
+    i > k ->  ss (lasso I T P) [] k -> ss (P_state2 I T P) [] i.
 Proof.
   intros.
   revert H0.
@@ -380,39 +400,194 @@ Proof.
   assert (i = k + (i - k)) by omega.
   rewrite H5 in H3.
   apply divide_loop_free in H3.
-  assert (length l >= k) by omega.  
+  assert (length l > k) by omega.  
   apply H0 in H6.
   tauto.
   tauto.
 Qed.
 
 
-Lemma case2_t2' : forall (T : trans) (P : property) (i k : nat) (l : list state),
-    i >= k -> length l >= i ->
-    (forall l : list state, length l >= k -> ~ (loop_free T l 0 k /\ ~ P (nth k l default)))
-    ->  ~ (loop_free T l (i - k) k /\ ~ P (nth i l default)).
+
+Fixpoint itl (l : list state) (i : nat) : list state :=
+  match i with
+  | O => l
+  | S i' => itl (tl l) i'
+  end.
+
+
+
+Lemma aaa : forall (T : trans) (i k : nat),
+    i > S k ->
+    forall l : list state, length l > i
+    -> ~ path T (itl l (i - S k)) 0 (S k)
+    -> ~ path T (itl l (i - k)) 0 k.
+Proof. Admitted.
+
+Lemma aa : forall (T : trans) (i k : nat),
+    i > S k ->
+    forall l : list state, length l > i
+    ->  ~ (T (nth (i - S k) l default) (nth (i - k) l default) /\
+                    path T l (i - k) k) 
+    ->  ~ path T l (i - S k) (S k).
+Proof. Admitted.
+
+
+Lemma a : forall (T : trans) (i k : nat),
+    i > k ->
+    forall l : list state, length l > i ->
+      ~ path T (itl l (i - k)) 0 k
+      -> ~ path T l (i - k) k.
 Proof.
   intros.
-  apply neg_false.
-  split.
-  intros.
   induction k.
-  unfold loop_free in *.
-  simpl in *.
-  induction l.
-  simpl in H0.
-  assert (i = 0) by omega.
-  rewrite H3 in H2.
-  simpl in H2.
-  unfold state in *.
+  - auto.
+    
+  - apply aa.
+    auto. auto.
+    
+    assert (H2 : ~ (T (nth (i - S k) l default) (nth (i - k) l default) /\
+               path T l (i - k) k) <->
+            ~ T (nth (i - S k) l default) (nth (i - k) l default) \/
+            ~ path T l (i - k) k) by tauto.
+    apply H2.
+    clear H2.
+    right.
+    apply IHk.
+    omega.
+
+    apply aaa.
+    auto. auto. auto.
+Qed.    
 
 
-Admitted.
+Lemma b : forall (i k : nat),
+    i > k ->
+    forall l : list state,  length l > i ->
+    ~ loop_check (itl l (i - k)) 0 k
+    -> ~ loop_check l (i - k) k .
+Proof. Admitted.
+
+
+Lemma c : forall (P : property) (i k : nat),
+    i > k ->
+    forall l : list state, length l > i ->
+    P (nth k (itl l (i - k)) default)
+    -> P (nth i l default).
+Proof. Admitted.
+
+
+Lemma case2_t2'' : forall (T : trans) (P : property) (i k : nat),
+    i > k ->
+    (forall l : list state, length l > i ->
+       ~ (loop_free T (itl l (i - k)) 0 k /\ ~ P (nth k (itl l (i-k)) default)))
+    ->  (forall l : list state, length l > i ->
+          ~ (loop_free T l (i-k) k /\ ~ P (nth i l default))).
+
+Proof.
+  intros.
+  assert (H2 : length l > i).
+  omega.
+  apply H0 in H2.
+  clear H0.
+
+  unfold loop_free in *. 
+
+
+  assert (H3 : ~ path T (itl l (i - k)) 0 k \/ ~ loop_check (itl l (i - k)) 0 k \/
+          P (nth k (itl l (i - k)) default)).
+  tauto.
+
+
+  clear H2.
+
+  assert (H2 : ~ path T l (i - k) k \/ ~ loop_check l (i - k) k \/  P (nth i l default)
+           ->  ~ ((path T l (i - k) k /\ loop_check l (i - k) k) /\ ~ P (nth i l default))).
+  tauto.
+
+  apply H2.
+  clear H2.
+
+  destruct H3.
+  left.
+  apply a.
+  auto. auto. auto.
+
+  destruct H0.
+  right.
+  left.
+  apply b.
+  auto. auto. auto.
+
+  right.
+  right.
+  apply c with (k := k).
+  auto. auto. auto.
+Qed.
+
+
+Lemma d : forall (i k : nat),
+    i > k ->
+    forall l : list state,
+    length l > i -> length (itl l (i-k)) > k.
+Proof. Admitted.
+
+Lemma case2_t2' : forall (T : trans) (P : property) (i k : nat),
+    i > k -> 
+    (forall l : list state, length l > k ->
+                        ~ (loop_free T l 0 k /\ ~ P (nth k l default)))
+    -> (forall l : list state, length l > i ->
+        ~ (loop_free T l (i-k) k /\ ~ P (nth i l default))).
+Proof.
+  intros.
+  revert l H1.
+  apply case2_t2''.
+  auto.
+  intros.
+  apply H0.
+
+  apply d.
+  auto. auto.
+Qed.
+
+
+(*
+  (*kについての帰納法*)
+  induction k.
+  + unfold loop_free in *.
+    simpl in *.
+
+    assert (~ ((True /\ True) /\ ~ P (nth i l default)) <->
+            ~~ P (nth i l default)) by tauto.
+    assert ((forall l : list state, length l > 0
+                              -> ~ ((True /\ True) /\ ~ P (nth 0 l default)))
+            <->
+            (forall l : list state,length l > 0
+                               -> ~~ P (nth 0 l default))) by firstorder.
+
+
+    apply H2.
+    rewrite H3 in H1.
+    clear H2 H3.
+
+    apply lll1.
+    tauto.
+    tauto.
+  + 
+
+
+    assert (forall l : list state,
+               length l > S k ->
+               ~ (loop_free T l 0 k /\ ~ P (nth k l default))).
+    apply by_smt.
+    
+
+*)
+
 
 
 
 Lemma case2_t2 : forall (I : init) (T : trans) (P : property) (i k : nat),
-    i >= k ->  ss (violate_loop_free I T P) [] k -> ss (P_state2 I T P) [] i.
+    i > k ->  ss (violate_loop_free I T P) [] k -> ss (P_state2 I T P) [] i.
 Proof.
   intros.
   revert H0.
@@ -430,7 +605,6 @@ Proof.
   destruct H3.
   assert (loop_free T l (i - k) k /\  ~ P (nth i l default)) by tauto.
   unfold violate_loop_free in H0.
-
   apply case2_t2' with (i := i) (l := l) in H0.
   auto.
   auto.
@@ -442,7 +616,7 @@ Qed.
 Theorem Proof_Sheeran_method_case2 :
   forall (I : init) (T : trans) (P : property) (k : nat),
     Sheeran_method1 I T P k
-    -> (forall (i : nat), (i >= k) -> ss (P_state2 I T P) [] i).
+    -> (forall (i : nat), (i > k) -> ss (P_state2 I T P) [] i).
 Proof.
   intros.
   unfold Sheeran_method1 in H.
@@ -461,9 +635,9 @@ Theorem Proof_Sheeran_method :
     -> (forall (i : nat), ss (P_state2 I T P) [] i).
 Proof.
   intros.
-  destruct (Nat.lt_ge_cases i k).
+  destruct (Nat.le_gt_cases i k).
   - revert H0.
-    now  apply Proof_Sheeran_method_case1.
+    now apply Proof_Sheeran_method_case1.
   - revert H0.
     now apply Proof_Sheeran_method_case2.
 Qed.
