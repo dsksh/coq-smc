@@ -415,21 +415,10 @@ Fixpoint itl (l : list state) (i : nat) : list state :=
   end.
 
 
-Lemma aaa : forall (T : trans) (i k : nat),
-    i > S k ->
-    forall l : list state, length l > i
-    -> ~ path T (itl l (i - S k)) 0 (S k)
-    -> ~ path T (itl l (i - k)) 0 k.
-Proof.
-  intros.
-  assert (H2 : forall A B, (~ A -> ~ B) <-> (B -> A)) by (intros; tauto).
-  revert H1.
-  apply H2.
-  intros.
-  apply divide_hd_path.
 
-
-Admitted.
+Lemma itl_prop : forall (i j : nat) (l : list state),
+    nth (i + j) l default = nth i (itl l j) default.
+Proof. Admitted.
 
 
 Lemma a : forall (T : trans) (i j : nat),
@@ -442,13 +431,14 @@ Proof.
   - auto.
 
   - assert (path T (itl l j) 0 (S i) <->
-            path T (itl l j) 0 i /\ T (nth i (itl l j) default) (nth (S i) (itl l j) default)).
+            path T (itl l j) 0 i /\
+            T (nth i (itl l j) default) (nth (S i) (itl l j) default)).
     {
-    destruct i. firstorder.
-    unfold path; fold path.
-    simpl.
-    rewrite <- plus_n_O.
-    tauto.
+      destruct i. firstorder.
+      unfold path; fold path.
+      simpl.
+      rewrite <- plus_n_O.
+      tauto.
     }
     apply H0.
     clear H0.
@@ -457,25 +447,117 @@ Proof.
     apply IHi.
     destruct i; firstorder.
     clear IHi.
-    
+    assert (T (nth (i + j) l default) (nth (S i + j) l default)).
+    {
+      destruct i.
+      simpl in *.
+      rewrite Nat.add_1_r in H.
+      tauto.
+      simpl in H.
+      rewrite Nat.add_succ_l.
+      rewrite Nat.add_succ_l.
+      rewrite Nat.add_succ_l.
+      tauto.
+    }
+    clear H.
+
+    rewrite <- itl_prop.
+    rewrite <- itl_prop.
+    auto.
+Qed.
 
 
-Admitted.
+Lemma b' : forall (i j k : nat),
+    forall l : list state,
+    loop_check' l j k i
+    -> loop_check' (itl l j) 0 k i.
+Proof.
+  intros.
+  destruct i.
+  - simpl in *.
+    do 2 rewrite <- itl_prop.
+    simpl in *.
+    rewrite <- plus_n_O in H.
+    replace (k + j) with (j + k).
+    tauto. omega.
+
+  - induction i.
+    + simpl in *.
+      do 3 rewrite <- itl_prop.
+      simpl in *.
+      replace (k + j) with (j + k).
+      rewrite Nat.add_succ_r in H.
+      rewrite <- plus_n_O in H.
+      tauto. omega.
+
+    + simpl.
+      split.
+      simpl in H.
+      do 2 rewrite <- itl_prop.
+      replace (k + j) with (j + k).
+      replace (S (S i) + j) with (j + S (S i)).
+      tauto. omega. omega.
+
+      simpl in H.
+      split.
+      do 2 rewrite <- itl_prop.
+      replace (k + j) with (j + k).
+      replace (S i + j) with (j + S i).
+      tauto. omega. omega.
+      apply IHi.
+      clear IHi.
+
+      simpl.
+      tauto.
+Qed.
 
 
 Lemma b : forall (i j : nat),
     forall l : list state, 
     loop_check l j i
     -> loop_check (itl l j) 0 i.
-Proof. Admitted.
+Proof.
+  intros.
+  induction i.
+  - auto.
 
+  - assert (H1 : loop_check l j i /\ loop_check' l j (S i) i)
+     by ( destruct i; firstorder; rewrite <- plus_n_O in *).
+    clear H.
+
+    assert (H :loop_check (itl l j) 0 i /\ loop_check' (itl l j) 0 (S i) i
+            -> loop_check (itl l j) 0 (S i)).
+    intros.
+    destruct i; firstorder; rewrite <- plus_n_O in *.
+
+    apply H.
+    clear H.
+    split.
+
+    apply IHi.
+    tauto.
+    destruct H1.
+    clear H.
+    clear IHi.
+
+    apply b' in H0.
+    tauto.
+Qed.
+          
 
 Lemma c : forall (P : property) (i k : nat),
     forall l : list state,
     i > k ->
     ~ P (nth i l default)
     -> ~ P (nth k (itl l (i - k)) default).
-Proof. Admitted.
+Proof.
+  intros.
+  rewrite <- itl_prop.
+  assert (H1 :i = k + (i - k)) by omega.
+  rewrite <- H1.
+  auto.
+Qed.
+
 
 
 Lemma case2_t2'' : forall (T : trans) (P : property) (i k : nat),
