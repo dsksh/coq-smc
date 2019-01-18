@@ -27,10 +27,6 @@ Notation "x ++ y" := (app x y)
 
 Set Implicit Arguments.
 
-(*
-Definition state : Type := nat -> Z.
-Definition default := fun x : nat => 99999%Z.
- *)
 
 Definition state : Type := Z.
 Definition default := 99999%Z.
@@ -41,7 +37,7 @@ Definition property : Type := state -> Prop.
 
 
 
-Fixpoint ss_body (f : list state -> nat -> Prop)
+(*Fixpoint ss_body (f : list state -> nat -> Prop)
          (l : list state) (iter n : nat) : Prop :=
   match iter with
   | 0 => forall s0 : state, f (l++[s0]) n
@@ -50,16 +46,6 @@ Fixpoint ss_body (f : list state -> nat -> Prop)
 
 Definition ss (f : list state -> nat -> Prop)
            (l : list state) (n : nat) : Prop :=
-  ss_body f l n n.
-
-(*
-Fixpoint ss_body (f : list state -> nat -> Prop) (l : list state) (iter n : nat) : Prop :=
-  match iter with
-  | 0 => forall s0 : state, f (l++[s0]) n
-  | S iter' => forall s0 : state, ss_body f (l++[s0]) iter' n
-  end.
-
-Definition ss (f : list state -> nat -> Prop) (l : list state) (n : nat) : Prop :=
   ss_body f l n n.
 *)
 
@@ -94,7 +80,7 @@ Definition ex_P (s : state) : Prop :=
   ~ (s = -1)%Z.
 
 Example naive_method_test1 :
-  Naive_method ex_I ex_T ex_P 5.
+  forall l : list state, Naive_method_body ex_I ex_T ex_P l 5.
 Proof.
   unfold Naive_method; unfold Naive_method_body.
   unfold ss.
@@ -417,8 +403,21 @@ Fixpoint itl (l : list state) (i : nat) : list state :=
 
 
 Lemma itl_prop : forall (i j : nat) (l : list state),
+    length l > i + j ->
     nth (i + j) l default = nth i (itl l j) default.
-Proof. Admitted.
+Proof.
+  intros.
+
+  times
+
+
+  unfold nth.
+
+  induction i.
+
+
+
+Admitted.
 
 
 Lemma a : forall (T : trans) (i j : nat),
@@ -591,7 +590,13 @@ Lemma d : forall (i k : nat),
     i > k ->
     forall l : list state,
     length l > i -> length (itl l (i-k)) > k.
-Proof. Admitted.
+Proof.
+
+
+Admitted.
+
+
+
 
 Lemma case2_t2' : forall (T : trans) (P : property) (i k : nat),
     i > k -> 
@@ -637,6 +642,7 @@ Proof.
   tauto.
 Qed.
   
+
 
 Theorem Proof_Sheeran_method_case2 :
   forall (I : init) (T : trans) (P : property) (k : nat),
