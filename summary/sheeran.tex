@@ -26,7 +26,7 @@
 \section{Sheeranらの方法1}
 \begin{multline}
     \Bigl(~(\neg \exists s_{[0..k]}. \  I(s_0) \land \mathit{loopFree}(s_{[0..k]})) \ \lor \
-    (\neg\exists s_{[0..k]}. \ \mathit{loopFree}(s_{[0..k]})  \ \lor\ \neg P(s_k))~\Bigr) ~~   \land \\ %\nonumber \\
+    (\neg\exists s_{[0..k]}. \ \mathit{loopFree}(s_{[0..k]})  \ \land \ \neg P(s_k))~\Bigr) ~~   \land \\ %\nonumber \\
   　\bigwedge_{0 \leq i \leq k} \bigl(\neg\exists s_{[0..i]}. \ I(s_0) \ \land \ \mathit{path}(s_{[0..i]})\ \land \ \neg P(s_i)\bigr) 
   　\label{eq:Sheeran1} %Sheeran
 \end{multline}
@@ -58,7 +58,7 @@
 \end{align}
 が成り立つことを証明する.
 
-$i < k$の場合, 式\eqref{eq:Sheeran1}の3行目より, 
+$i < k$の場合, 式\eqref{eq:Sheeran1}の2行目より, 
 $k$ステップ目まで安全であることが分かっているので, 式\eqref{eq:sub-safety3}が成り立つ. 
 
 つぎに, $i \geq k$の場合について証明する.
