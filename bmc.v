@@ -533,7 +533,7 @@ Proof.
 Qed.
 
 
-
+(*
 Lemma case2_2'' : forall (T : trans) (P : property) (size i k : nat),
     i > k ->
     (forall l : list state,
@@ -558,7 +558,7 @@ Proof.
   apply P_itl_relation with (k := k) in H2.
   auto. omega. 
 Qed.
-
+*)
 
 Theorem case2_2' : forall (T : trans) (P : property) (size i k : nat),
     i > k -> 
@@ -566,9 +566,18 @@ Theorem case2_2' : forall (T : trans) (P : property) (size i k : nat),
     -> forall l : list state, ~ (loop_free T l size (i-k) k /\ ~ P (l _[i])).
 Proof.
   intros.
-  apply case2_2''.
-  auto.
-  auto.
+  apply neg_false.
+  split.
+  unfold loop_free in *.
+  intros.
+  destruct H1.
+  destruct H1.
+  apply no_loop_itl_relation in H3.
+  apply P_itl_relation with (k:= k) in H2.
+  apply path_itl_relation in H1.
+  firstorder.
+  omega.
+  tauto.
 Qed.
 
 
