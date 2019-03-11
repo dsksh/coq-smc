@@ -46,16 +46,16 @@ Proof.
 Qed.
 
 
-Lemma all_P_itl_relation : forall (P : property) (i j : nat),
+Lemma all_P_skipn_relation : forall (P : property) (i j : nat),
     forall l : list state,
-    all_P P l j i  -> all_P P (itl l j) 0 i.
+    all_P P l j i  -> all_P P (skipn j l) 0 i.
 Proof.
   intros.
   induction i.
   - auto.
 
-  - assert (H0 : all_P P (itl l j) 0 i /\ P ((itl l j) _[i])
-                 -> all_P P (itl l j) 0 (S i)).
+  - assert (H0 : all_P P (skipn j l) 0 i /\ P ((skipn j l) _[i])
+                 -> all_P P (skipn j l) 0 (S i)).
     intros.
     destruct i; firstorder.
     apply H0.
@@ -63,11 +63,11 @@ Proof.
     split.
     apply IHi.
     destruct i; firstorder.
-    rewrite <- itl_relation.
+    rewrite skipn_nth.
     destruct i; firstorder.
-    replace (S i + j) with (j + S i).
     auto.
-    omega.
+    simpl in *. rewrite <- plus_n_O.
+    auto.
 Qed.
 
 
@@ -87,13 +87,13 @@ Proof.
   destruct H1.
   destruct H1.
   destruct H2.
-  apply no_loop_itl_relation in H3.
-  apply P_itl_relation with (k:= S k) in H4.
-  apply path_itl_relation in H1.
-  apply all_P_itl_relation in H2.
-  assert (i - S k = i - k - 1) by omega.
-  rewrite H5 in H4.
+  apply no_loop_skipn_relation in H3.
+  apply P_skipn_relation with (k:= S k) in H4.
+  apply path_skipn_relation in H1.
+  apply all_P_skipn_relation in H2.
+  replace (i - S k) with (i - k - 1) in H4.
   firstorder.
+  omega.
   omega.
   tauto.
 Qed.
@@ -157,11 +157,11 @@ Proof.
   assert (H1 : forall A : Prop, A -> ~~ A) by tauto.
   apply H1.
   
-  assert (H2 : i = 0 + i) by omega.
+  assert (H2 : i = i + 0) by omega.
   rewrite H2.
-  rewrite itl_relation.
+  rewrite <- skipn_nth.
   apply NNPP.
-  firstorder.
+  auto.
 Qed.
 
 
@@ -210,7 +210,7 @@ Proof.
         apply divide_loop_free in H5.
         destruct H5.
         assert (H9 : k < i) by omega.
-        apply itl_violate_loop_free with
+        apply shift_violate_loop_free with
           (T:=T) (P:=P) (size:=size) (l:=l) in H3.
         apply lt_wf_ind_incl_P with
           (I:=I) (T:=T)(P:=P)(size:=size) (l:=l) in H9.
