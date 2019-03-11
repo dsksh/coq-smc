@@ -28,18 +28,6 @@ Definition k_Induction (I : init) (T : trans) (P : property) (size k: nat) : Pro
    (k_violate_loop_free I T P size k)) /\ safety I T P k.
 
 
-Lemma Proof_k_Induction_case1:
-  forall (I : init) (T : trans) (P : property) (size k : nat),
-    k_Induction I T P size k
-    -> (forall (i : nat), (i > k) -> P_state2 I T P size i).
-Proof. Admitted.
-
-Lemma Proof_k_Induction_case2 :
-  forall (I : init) (T : trans) (P : property) (size k : nat),
-    k_Induction I T P size k
-    -> (forall (i : nat), (i <= k) -> P_state2 I T P size i).
-Proof. Admitted.
-
 
 Lemma lt_safety_relation : forall (i k : nat) (I : init) (T : trans) (P : property),
     (i < k) -> safety I T P k -> P_state1 I T P i.
@@ -61,10 +49,29 @@ Qed.
 Lemma all_P_itl_relation : forall (P : property) (i j : nat),
     forall l : list state,
     all_P P l j i  -> all_P P (itl l j) 0 i.
-Proof. Admitted.
+Proof.
+  intros.
+  induction i.
+  - auto.
+
+  - assert (H0 : all_P P (itl l j) 0 i /\ P ((itl l j) _[i])
+                 -> all_P P (itl l j) 0 (S i)).
+    intros.
+    destruct i; firstorder.
+    apply H0.
+    clear H0.
+    split.
+    apply IHi.
+    destruct i; firstorder.
+    rewrite <- itl_relation.
+    destruct i; firstorder.
+    replace (S i + j) with (j + S i).
+    auto.
+    omega.
+Qed.
 
 
-Lemma itl_violate_loop_free : forall (T : trans) (P : property) (size i k : nat),
+Lemma shift_violate_loop_free : forall (T : trans) (P : property) (size i k : nat),
     S k <= i -> 
     (forall l : list state,
         ~ (loop_free T l size 0 (S k) /\ all_P P l 0 (S k) /\ ~ P (l _[S k])))
@@ -143,9 +150,6 @@ Proof.
     omega.
 Qed.
 
-
-
-
 Lemma xxxx : forall (P : property) (i : nat) (l : list state),
     (forall l',  ~ ~ P (l' _[ 0])) -> ~~ P (l _[i]).
 Proof.
@@ -169,8 +173,7 @@ Proof.
   unfold P_state2.
   intros.
   
-  assert (H0 : forall A B C : Prop, (A /\ B -> C) <->  ~ (A /\ B /\ ~ C))
-    by (split; tauto).
+  assert (H0 : forall A B C : Prop, (A /\ B -> C) <->  ~ (A /\ B /\ ~ C)) by (split; tauto).
   apply H0. 
   intros.
 

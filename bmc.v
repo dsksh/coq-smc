@@ -73,13 +73,13 @@ Definition naive_method (I : init) (T : trans) (P : property)
 
   
 Definition ex_I (s : state) : Prop :=
-  s 0 = 1%Z /\ s 1 = 0%Z /\ s 2 = 0%Z.
+  s 2 = 1%Z /\ s 1 = 0%Z /\ s 0 = 0%Z. 
 
 Definition ex_T (si sj : state) : Prop :=
-  sj 0 = 0%Z /\ sj 1 = si 0 /\ sj 2 = si 1.
+  sj 2 = 1%Z /\ sj 1 = si 2 /\ sj 0 = si 1.
  
 Definition ex_P (s : state) : Prop :=
-  ~ (s 0 = 1%Z /\ s 1 = 1%Z /\ s 2 = 1%Z).
+  ~ (s 0 = 0%Z /\ s 1 = 0%Z /\ s 2 = 0%Z).
 
 Example naive_method_test1 :
   naive_method ex_I ex_T ex_P 5.
@@ -96,7 +96,7 @@ Qed.
 Fixpoint neq_state (si sj : state) (n : nat) : Prop :=
   match n with
   | O => True
-  | S O =>   ~ (si 0 = sj 0)
+  | S O => ~ (si 0 = sj 0)
   | S n' => neq_state si sj n' \/ ~ (si n' = sj n')
   end.
 
@@ -144,22 +144,34 @@ Definition Sheeran_method1 (I : init) (T : trans) (P : property) (size k: nat) :
   ((lasso I T P size k) \/
    (violate_loop_free I T P size k)) /\ safety I T P k.
 
-
+(*
+Tactic Notation "Sheeran_smt_solve1" :=
+ unfold Sheeran_method1;
+ unfold state, lasso, violate_loop_free, safety;
+ unfold loop_free, P_state1;
+ simpl;
+ repeat tryif split then try split else
+     tryif right; intros; smt solve then apply by_smt
+     else  left; intros; smt solve; apply by_smt.
+*)
 
 Example Sheeran_method1_test1 :
-  Sheeran_method1 ex_I ex_T ex_P 3 10.
+  Sheeran_method1 ex_I ex_T ex_P 3 4.
 Proof.
   unfold ex_I, ex_T, ex_P.
   unfold Sheeran_method1, lasso, violate_loop_free, safety;
+  split;
   unfold loop_free, P_state1;
   unfold state;
   simpl;
   unfold neq_state.
-  split.
-  tryif right; intros; smt solve then apply by_smt
-     else  left; intros; smt solve; apply by_smt.
+
+  (right; intros; smt solve; apply by_smt) ||
+  (left; intros; smt solve; apply by_smt).
+
   repeat tryif split then split
     else smt solve; apply by_smt.
+                    
 Qed.
 
 
@@ -385,30 +397,35 @@ Proof.
 Qed.
 
 
+Lemma skipn_nth: forall A:Type, forall l:list A, forall n m:nat, forall d:A,
+  nth m (skipn n l) d = nth (n+m) l d.
+Proof.
+  intros A l.
+  induction l; intros; 
+    destruct m; destruct n; simpl; auto.
+Qed.
 
-Fixpoint itl (l : list state) (i : nat) : list state :=
-  match i with
-  | O => l
-  | S i' => itl (tl l) i'
-  end.
+(*
+Lemma skipn_relation : forall(l : list state) (i j : nat) ,
+    l _[(i + j)] = (skipn i l) _[j].
+Proof.
+  intros l.
+  induction l; intros;
+  destruct j; destruct i; simpl; auto.
+Qed.
+*)
 
-
-Axiom itl_relation : forall (i j : nat) (l : list state),
-    l _[(i + j)] = (itl l j) _[i].
-
-
-
-Lemma path_itl_relation : forall (T : trans) (i j : nat),
+Lemma path_skipn_relation : forall (T : trans) (i j : nat),
     forall l : list state,
-    path T l j i  -> path T (itl l j) 0 i.
+    path T l j i  -> path T (skipn j l) 0 i.
 Proof.
   intros.
   induction i.
   - auto.
 
-  - assert (path T (itl l j) 0 (S i) <->
-            path T (itl l j) 0 i /\
-            T ((itl l j) _[i]) ((itl l j) _[(S i)])).
+  - assert (path T (skipn j l) 0 (S i) <->
+            path T (skipn j l) 0 i /\
+            T ((skipn j l) _[i]) ((skipn j l) _[(S i)])).
     {
       destruct i. firstorder.
       unfold path; fold path.
@@ -423,74 +440,56 @@ Proof.
     apply IHi.
     destruct i; firstorder.
     clear IHi.
-    assert (T (l _[(i + j)]) (l _[(S i + j)])).
-    {
-      destruct i.
-      simpl in *.
-      rewrite Nat.add_1_r in H.
-      tauto.
-      simpl in H.
-      rewrite Nat.add_succ_l.
-      rewrite Nat.add_succ_l.
-      rewrite Nat.add_succ_l.
-      tauto.
-    }
-    clear H.
-
-    rewrite <- itl_relation.
-    rewrite <- itl_relation.
+    rewrite skipn_nth.
+    rewrite skipn_nth.
+    replace (j + i) with (i + j).
+    replace (j + S i) with (S i + j).
+    simpl in *.
+    destruct i.
+    simpl in *.
+    rewrite Nat.add_1_r in H.
     auto.
+    tauto.
+    omega.
+    omega.
 Qed.
 
 
-Lemma no_loop'_itl_relation : forall (size i j k : nat),
+Lemma no_loop'_skipn_relation : forall (size i j k : nat),
     forall l : list state,
     no_loop' l size j k i
-    -> no_loop' (itl l j) size 0 k i.
+    -> no_loop' (skipn j l) size 0 k i.
 Proof.
   intros.
   destruct i.
   - simpl in *.
-    do 2 rewrite <- itl_relation.
+    do 2 rewrite skipn_nth.
     simpl in *.
-    rewrite <- plus_n_O in H.
-    replace (k + j) with (j + k).
-    tauto. omega.
+    auto.
 
   - induction i.
     + simpl in *.
-      do 3 rewrite <- itl_relation.
+      do 3 rewrite skipn_nth.
       simpl in *.
-      replace (k + j) with (j + k).
-      rewrite Nat.add_succ_r in H.
-      rewrite <- plus_n_O in H.
-      tauto. omega.
+      auto.
 
     + simpl.
       split.
       simpl in H.
-      do 2 rewrite <- itl_relation.
-      replace (k + j) with (j + k).
-      replace (S (S i) + j) with (j + S (S i)).
-      tauto. omega. omega.
+      do 2 rewrite skipn_nth.
+      tauto.
 
       simpl in H.
       split.
-      do 2 rewrite <- itl_relation.
-      replace (k + j) with (j + k).
-      replace (S i + j) with (j + S i).
-      tauto. omega. omega.
-      apply IHi.
-      clear IHi.
-
-      simpl.
+      do 2 rewrite skipn_nth.
       tauto.
+      firstorder.
 Qed.
 
 
-Lemma no_loop_itl_relation : forall (size i j : nat),
+Lemma no_loop_skipn_relation : forall (size i j : nat),
     forall l : list state,  no_loop l size j i
-    -> no_loop (itl l j) size 0 i.
+    -> no_loop (skipn j l) size 0 i.
 Proof.
   intros.
   induction i.
@@ -500,36 +499,32 @@ Proof.
      by ( destruct i; firstorder; rewrite <- plus_n_O in *).
     clear H.
 
-    assert (H :no_loop (itl l j) size 0 i /\ no_loop' (itl l j) size 0 (S i) i
-            -> no_loop (itl l j) size 0 (S i)).
+    assert (H :no_loop (skipn j l) size 0 i /\ no_loop' (skipn j l) size 0 (S i) i
+            -> no_loop (skipn j l) size 0 (S i)).
     intros.
     destruct i; firstorder; rewrite <- plus_n_O in *.
-
     apply H.
     clear H.
-    split.
-
+    split.    
     apply IHi.
     tauto.
     destruct H1.
     clear H.
-    clear IHi.
-
-    apply no_loop'_itl_relation in H0.
+    apply no_loop'_skipn_relation in H0.
     tauto.
 Qed.
           
 
-Lemma P_itl_relation : forall (P : property) (i k : nat),
+Lemma P_skipn_relation : forall (P : property) (i k : nat),
     forall l : list state,
     i >= k -> ~ P (l _[i])
-    -> ~ P ((itl l (i - k)) _[k]).
+    -> ~ P ((skipn (i - k) l) _[k]).
 Proof.
   intros.
-  rewrite <- itl_relation.
-  assert (H1 :i = k + (i - k)) by omega.
-  rewrite <- H1.
+  rewrite skipn_nth.
+  replace (i - k + k) with i.
   auto.
+  omega.
 Qed.
 
 
@@ -537,14 +532,14 @@ Qed.
 Lemma case2_2'' : forall (T : trans) (P : property) (size i k : nat),
     i > k ->
     (forall l : list state,
-        ~ (loop_free T (itl l (i - k)) size 0 k /\ ~ P ((itl l (i-k)) _[k])))
+        ~ (loop_free T (skipn l (i - k)) size 0 k /\ ~ P ((skipn l (i-k)) _[k])))
     ->  (forall l : list state, 
           ~ (loop_free T l size (i-k) k /\ ~ P (l _[i]))).
 
 Proof.
   intros.
-  assert ( ~ (loop_free T (itl l (i - k)) size 0 k /\
-              ~ P ((itl l (i - k)) _[k]))) by auto.
+  assert ( ~ (loop_free T (skipn l (i - k)) size 0 k /\
+              ~ P ((skipn l (i - k)) _[k]))) by auto.
   assert (H2 : forall A B, (~ A -> ~ B) <-> (B -> A)) by (intros; tauto).
   revert H1.
   apply H2.
@@ -553,9 +548,9 @@ Proof.
   unfold loop_free in *. 
   destruct H1.
   destruct H1.
-  apply path_itl_relation in H1.
-  apply no_loop_itl_relation in H3.
-  apply P_itl_relation with (k := k) in H2.
+  apply path_skipn_relation in H1.
+  apply no_loop_skipn_relation in H3.
+  apply P_skipn_relation with (k := k) in H2.
   auto. omega. 
 Qed.
 *)
@@ -572,9 +567,9 @@ Proof.
   intros.
   destruct H1.
   destruct H1.
-  apply no_loop_itl_relation in H3.
-  apply P_itl_relation with (k:= k) in H2.
-  apply path_itl_relation in H1.
+  apply no_loop_skipn_relation in H3.
+  apply P_skipn_relation with (k:= k) in H2.
+  apply path_skipn_relation in H1.
   firstorder.
   omega.
   tauto.
