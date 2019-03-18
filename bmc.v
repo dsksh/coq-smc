@@ -82,12 +82,15 @@ Definition ex_P (s : state) : Prop :=
   ~ (s 0 = 0%Z /\ s 1 = 0%Z /\ s 2 = 0%Z).
 
 Example naive_method_test1 :
-  naive_method ex_I ex_T ex_P 5.
+  naive_method ex_I ex_T ex_P 3.
 Proof.
   unfold naive_method.
   simpl.
   unfold ex_I; unfold ex_T; unfold  ex_P.
-  unfold state.
+  intros.
+  unfold state in *.
+
+
   intros.
   smt solve; apply by_smt.
 Qed.
@@ -203,7 +206,7 @@ Proof.
     destruct k; firstorder.
 Qed.
 
-Theorem Proof_Sheeran_method_case1 :
+Theorem Sheeran_method_soundness_case1 :
   forall (I : init) (T : trans) (P : property) (size k : nat),
     Sheeran_method1 I T P size k
     -> (forall (i : nat), (i <= k) -> P_state2 I T P size i).
@@ -597,7 +600,7 @@ Qed.
   
 
 
-Theorem Proof_Sheeran_method_case2 :
+Theorem Sheeran_method_soundness_case2 :
   forall (I : init) (T : trans) (P : property) (size k : nat),
     Sheeran_method1 I T P size k
     -> (forall (i : nat), (i > k) -> P_state2 I T P size i).
@@ -613,7 +616,7 @@ Proof.
 Qed.
 
   
-Theorem Proof_Sheeran_method :
+Theorem Sheeran_method_soundness :
   forall (I : init) (T : trans) (P : property) (size k : nat),
     Sheeran_method1 I T P size k
     -> (forall (i : nat), P_state2 I T P size i).
@@ -621,7 +624,7 @@ Proof.
   intros.
   destruct (Nat.le_gt_cases i k).
   - revert H0.
-    now apply Proof_Sheeran_method_case1.
+    now apply Sheeran_method_soundness_case1.
   - revert H0.
-    now apply Proof_Sheeran_method_case2.
+    now apply Sheeran_method_soundness_case2.
 Qed.
