@@ -1,4 +1,6 @@
 Require Import common.
+Require Import SMTC.Tactic.
+Require Import SMTC.Integers.
 
 Set SMT Solver "z3".
 Set SMT Debug.
