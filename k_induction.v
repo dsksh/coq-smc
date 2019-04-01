@@ -1,61 +1,50 @@
-Require Export bmc.
+Require Import common.
 Require Import Omega.
 Require Import Coq.Logic.Classical_Prop.
-Local Open Scope nat_scope.
-Local Axiom by_smt : forall P : Prop, P.
 
-Fixpoint all_P (P : property) (l : list state) (o num: nat) : Prop :=
+
+Fixpoint all_P (P : prop) (ss : sseq) (o num: nat) : Prop :=
   match num with
   | O => True
-  | S 0  => P (l _[o])
-  | S num' => all_P P l o num' /\ P (l _[o+num'])
+  | S 0  => P ss.[o]
+  | S num' => all_P P ss o num' /\ P ss.[o+num']
   end.
 
-(*
-Definition safety2 (I : init) (T : trans) (P : property) (k : nat) : Prop :=
-  forall l : list state,
-   not (I (l _[0]) /\ path T l 0 k /\ all_P P l 0 k).
- *)
-
 Definition k_violate_loop_free (I : init) (T : trans)
-           (P : property) (size k: nat) : Prop :=
-  forall l : list state,
-  ~ (loop_free T l size 0 k /\ all_P P l 0 k /\ ~ P (l _[k])).
+  (P : prop) (size k: nat) : Prop :=
+  forall ss : sseq,
+  ~ (loop_free T ss size 0 k /\ all_P P ss 0 k /\ ~ P ss.[k]).
 
 
-Definition k_Induction (I : init) (T : trans) (P : property) (size k: nat) : Prop :=
+Definition k_Induction (I : init) (T : trans) (P : prop) (size k: nat) : Prop :=
   ((lasso I T P size k) \/
    (k_violate_loop_free I T P size k)) /\ safety I T P k.
 
-
-
-Lemma lt_safety_relation : forall (i k : nat) (I : init) (T : trans) (P : property),
-    (i < k) -> safety I T P k -> P_state1 I T P i.
+Lemma lt_safety_relation : forall (i k : nat) (I : init) (T : trans) (P : prop),
+  (i < k) -> safety I T P k -> safety_init_k I T P i.
 Proof.
   intros.
   induction k.
   - easy.
-    
   - destruct (Nat.lt_ge_cases i k).
-    + assert (H2 : safety I T P k /\ P_state1 I T P k) 
-        by (destruct k; firstorder; now rewrite <- plus_n_O in H0).
+    + assert (H2 : safety I T P k /\ safety_init_k I T P k)
+      by (destruct k; firstorder; now rewrite <- plus_n_O in H0).
       now apply (IHk H1). 
     + apply gt_S_le in H.
       assert (i = k) by omega.      
       destruct k; rewrite H2; firstorder.
 Qed.
 
-
-Lemma all_P_skipn_relation : forall (P : property) (i j : nat),
-    forall l : list state,
-    all_P P l j i  -> all_P P (skipn j l) 0 i.
+Lemma all_P_skipn_relation : forall (P : prop) (i j : nat),
+    forall ss : sseq,
+    all_P P ss j i  -> all_P P (skipn j ss) 0 i.
 Proof.
   intros.
   induction i.
   - auto.
 
-  - assert (H0 : all_P P (skipn j l) 0 i /\ P ((skipn j l) _[i])
-                 -> all_P P (skipn j l) 0 (S i)).
+  - assert (H0 : all_P P (skipn j ss) 0 i /\ P (skipn j ss).[i]
+                 -> all_P P (skipn j ss) 0 (S i)).
     intros.
     destruct i; firstorder.
     apply H0.
@@ -70,14 +59,14 @@ Proof.
     auto.
 Qed.
 
-
-Lemma shift_violate_loop_free : forall (T : trans) (P : property) (size i k : nat),
-    S k <= i -> 
-    (forall l : list state,
-        ~ (loop_free T l size 0 (S k) /\ all_P P l 0 (S k) /\ ~ P (l _[S k])))
-    -> forall l : list state,
-        ~ (loop_free T l size (i-k-1) (S k) /\ all_P P l (i-k-1) (S k) /\
-           ~ P (l _[i])).
+Lemma shift_violate_loop_free : 
+  forall (T : trans) (P : prop) (size i k : nat),
+  S k <= i ->
+  ( forall ss : sseq,
+     ~ (loop_free T ss size 0 (S k) /\ all_P P ss 0 (S k) /\ ~ P ss.[S k]) ) ->
+  forall ss : sseq,
+  ~ ( loop_free T ss size (i-k-1) (S k) /\ 
+    all_P P ss (i-k-1) (S k) /\ ~ (P (ss.[i])) ).
 Proof.
   intros.
   apply neg_false.
@@ -92,33 +81,37 @@ Proof.
   apply path_skipn_relation in H1.
   apply all_P_skipn_relation in H2.
   replace (i - S k) with (i - k - 1) in H4.
-  firstorder.
+  assert (( path T (skipn (i - k - 1) ss) 0 (S k) /\
+    no_loop (skipn (i - k - 1) ss) size 0 (S k) ) /\
+    all_P P (skipn (i - k - 1) ss) 0 (S k) /\ 
+    ~ P (skipn (i - k - 1) ss) .[ S k] )
+    by firstorder.
+  apply H0 in H5.
+  contradiction.
   omega.
   omega.
   tauto.
 Qed.
 
-
-
-Lemma divide_hd_all_P : forall (P : property)(l : list state) (i j : nat),
-    P (l _[i]) /\ all_P P l (S i) j <-> all_P P l i (S j).
+Lemma divide_hd_all_P : forall (P : prop) (ss : sseq) (i j : nat),
+  P ss.[i] /\ all_P P ss (S i) j <-> all_P P ss i (S j).
 Proof.
   destruct j.
   - unfold all_P. simpl.
     tauto.
-   
   - induction j. simpl. 
     rewrite Nat.add_1_r.
     tauto.
     firstorder; now rewrite Nat.add_succ_comm in *.
 Qed.
 
-
-Lemma lt_wf_ind_incl_P : forall (I : init) (T : trans) (P : property)
-                 (l : list state) (i k size : nat),
-   k < i ->  I (l _[ 0]) /\ loop_free T l size 0 i ->
-   (forall m : nat, m < i -> I (l _[0]) /\ loop_free T l size 0 m -> P (l _[m]))
-   -> all_P P l (i-k-1) (S k).
+Lemma lt_wf_ind_incl_P : 
+  forall (I : init) (T : trans) (P : prop) (ss : sseq)
+    (i k size : nat),
+  k < i -> I ss.[0] /\ loop_free T ss size 0 i ->
+  (forall m : nat, m < i -> I ss.[0] /\ 
+     loop_free T ss size 0 m -> P ss.[m]) -> 
+  all_P P ss (i-k-1) (S k).
 Proof.
   intros.
   induction k.
@@ -150,8 +143,8 @@ Proof.
     omega.
 Qed.
 
-Lemma xxxx : forall (P : property) (i : nat) (l : list state),
-    (forall l',  ~ ~ P (l' _[ 0])) -> ~~ P (l _[i]).
+Lemma xxxx : forall (P : prop) (i : nat) (ss : sseq),
+  (forall ss',  ~~ P ss'.[ 0]) -> ~~ P ss.[i].
 Proof.
   intros.
   assert (H1 : forall A : Prop, A -> ~~ A) by tauto.
@@ -164,15 +157,13 @@ Proof.
   auto.
 Qed.
 
-
 Theorem Proof_k_Induction :
-  forall (I : init) (T : trans) (P : property) (size k : nat),
-    k_Induction I T P size k
-    -> (forall (i : nat), P_state2 I T P size i).
+  forall (I : init) (T : trans) (P : prop) (size k : nat),
+  k_Induction I T P size k -> 
+  forall (i : nat), P_state2 I T P size i.
 Proof.
   unfold P_state2.
   intros.
-  
   assert (H0 : forall A B C : Prop, (A /\ B -> C) <->  ~ (A /\ B /\ ~ C)) by (split; tauto).
   apply H0. 
   intros.
@@ -181,8 +172,8 @@ Proof.
   unfold k_Induction in H.
   destruct (Nat.lt_ge_cases i k).
   - apply lt_safety_relation with (I:=I) (T:=T) (P:=P) in H3.
-    unfold P_state1 in H3.
-    assert (H4 : ~ (I (l _[ 0]) /\ path T l 0 i /\ ~ P (l _[ i]))) by auto.
+    unfold safety_init_k in H3.
+    assert (H4 : ~ (I ss.[0] /\ path T ss 0 i /\ ~ P ss.[i])) by auto.
     clear H3.
     apply <- H0 in H4.
     tauto.
@@ -200,22 +191,22 @@ Proof.
       destruct k.
       * unfold loop_free in H.
         simpl in *.
-        assert (H5 : forall l, ~~ P (l _[0])) by firstorder.
-        apply xxxx with (i:=i) (l:=l) in H5.
+        assert (H5 : forall ss, ~~ P ss.[0]) by firstorder.
+        apply xxxx with (i:=i) (ss:=ss) in H5.
         tauto.
       * destruct H1.
         assert (H6 : i = (i - k - 1) + (k + 1)) by omega.
-        assert (H7 : loop_free T l size 0 i) by auto.
+        assert (H7 : loop_free T ss size 0 i) by auto.
         rewrite H6 in H5.
         apply divide_loop_free in H5.
         destruct H5.
         assert (H9 : k < i) by omega.
         apply shift_violate_loop_free with
-          (T:=T) (P:=P) (size:=size) (l:=l) in H3.
+          (T:=T) (P:=P) (size:=size) (ss:=ss) in H3.
         apply lt_wf_ind_incl_P with
-          (I:=I) (T:=T)(P:=P)(size:=size) (l:=l) in H9.
-        assert (H10 :loop_free T l size (i - k - 1) (k + 1) /\
-                all_P P l (i - k - 1) (S k)) by tauto.
+          (I:=I) (T:=T)(P:=P)(size:=size) (ss:=ss) in H9.
+        assert (H10 :loop_free T ss size (i - k - 1) (k + 1) /\
+                all_P P ss (i - k - 1) (S k)) by tauto.
         apply H0 in H3.
         auto.
         rewrite Nat.add_1_r in H8.
@@ -224,3 +215,5 @@ Proof.
         auto.
         auto.
 Qed.
+
+(* eof *)
