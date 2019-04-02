@@ -3,8 +3,8 @@ Require Import Omega.
 
 
 Definition algorithm1_post (I : init) (T : trans) (P : prop) (size k: nat) : Prop :=
-  ((lasso I T P size k) \/
-   (violate_loop_free I T P size k)) /\ safety_k I T P k.
+  (lasso I T P size k \/ violate_loop_free I T P size k) /\ 
+  safety_k I T P k.
 
 (*
 Tactic Notation "algorithm1_solve1" :=
@@ -41,7 +41,7 @@ Qed.
 Local Theorem case1 :
   forall (I : init) (T : trans) (P : prop) (size k : nat),
   algorithm1_post I T P size k -> 
-    (forall (i : nat), (i <= k) -> safety_k_init_lf I T P size i).
+    forall (i : nat), (i <= k) -> prop_k_init_lf I T P size i.
 Proof.
   intros.
   unfold algorithm1_post in H.
@@ -54,9 +54,9 @@ Qed.
 
 Local Lemma case2_1 :
   forall (I : init) (T : trans) (P : prop) (size i k : nat),
-  i > k -> lasso I T P size k -> safety_k_init_lf I T P size i.
+  i > k -> lasso I T P size k -> prop_k_init_lf I T P size i.
 Proof.
-  unfold lasso, safety_k_init_lf in *.
+  unfold lasso, prop_k_init_lf in *.
   intros.
   apply neg_false.
   split.
@@ -82,9 +82,9 @@ Proof.
   intros.
   destruct H1.
   destruct H1.
-  apply no_loop_skipn in H3.
-  apply prop_skipn with (k:= k) in H2.
-  apply path_skipn in H1.
+  apply skipn_no_loop in H3.
+  apply skipn_prop with (k:= k) in H2.
+  apply skipn_path in H1.
   firstorder.
   omega.
   tauto.
@@ -93,9 +93,9 @@ Qed.
 Local Lemma case2_2 : forall (I : init) (T : trans) (P : prop) (size i k : nat),
   i > k -> 
   violate_loop_free I T P size k -> 
-  safety_k_init_lf I T P size i.
+  prop_k_init_lf I T P size i.
 Proof.
-  unfold violate_loop_free, safety_k_init_lf.
+  unfold violate_loop_free, prop_k_init_lf.
   intros.
   apply neg_false.
   split.
@@ -114,15 +114,13 @@ Qed.
 Local Lemma case2 :
   forall (I : init) (T : trans) (P : prop) (size k : nat),
   algorithm1_post I T P size k -> 
-  forall (i : nat), (i > k) -> safety_k_init_lf I T P size i.
+  forall (i : nat), (i > k) -> prop_k_init_lf I T P size i.
 Proof.
   intros.
   unfold algorithm1_post in H.
   destruct H.
-
   destruct H.
   - now apply case2_1 with (k := k).
-
   - now apply case2_2 with (k := k).
 Qed.
 
@@ -131,7 +129,7 @@ Qed.
 Theorem soundness_algorithm1 :
   forall (I : init) (T : trans) (P : prop) (size k : nat),
   algorithm1_post I T P size k -> 
-  forall (i : nat), safety_k_init_lf I T P size i.
+  forall (i : nat), prop_k_init_lf I T P size i.
 Proof.
   intros.
   destruct (Nat.le_gt_cases i k).

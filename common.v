@@ -1,3 +1,4 @@
+Require Import Coq.Logic.Classical_Prop.
 Require Export ZArith.
 (*Require Export SMTC.Tactic.
 Require Import SMTC.Integers.*)
@@ -65,8 +66,8 @@ Definition prop : Type := state -> Prop.
 Fixpoint path (T : trans) (ss : sseq) (o len : nat) : Prop :=
   match len with
   | O => True
-  | S O => T ss.[o] ss.[o+1]
-  | S len' => path T ss o len' /\ T ss.[len'+o] ss.[len+o]
+  (*| S O => T ss.[o] ss.[o+1]*)
+  | S len' => path T ss o len' /\ T ss.[o+len'] ss.[o+len]
   end.
 
 Fixpoint invariance (P : prop) (ss : sseq) (len : nat) : Prop :=
@@ -75,24 +76,24 @@ Fixpoint invariance (P : prop) (ss : sseq) (len : nat) : Prop :=
   | S len' => invariance P ss len' /\ P ss.[len]
   end.
 
-Fixpoint neq_states (si sj : state) (n : nat) : Prop :=
-  match n with
+Fixpoint neq_states (si sj : state) (size : nat) : Prop :=
+  match size with
   | O => True
-  | S O => ~ (si 0 = sj 0)
-  | S n' => neq_states si sj n' \/ ~ (si n' = sj n')
+  (*| S O => ~ (si 0 = sj 0)*)
+  | S sz' => neq_states si sj sz' \/ ~ (si sz' = sj sz')
   end.
 
-Fixpoint no_loop' (ss : sseq) (size o n m: nat) : Prop :=
-  match m with
-  | O => neq_states (ss.[o+n]) (ss.[o+m]) size
-  | S m' => neq_states (ss.[o+n]) (ss.[o+m]) size /\
-      no_loop' ss size o n m' 
+Fixpoint no_loop' (ss : sseq) (size o m n: nat) : Prop :=
+  match n with
+  | O => neq_states (ss.[o+m]) (ss.[o+n]) size
+  | S n' => no_loop' ss size o m n' /\ 
+      neq_states (ss.[o+m]) (ss.[o+n]) size
   end.
 
 Fixpoint no_loop (ss : sseq) (size o k : nat) : Prop :=
   match k with
   | O => True
-  | 1 => no_loop' ss size o 1 0
+  (*| 1 => no_loop' ss size o 1 0*)
   | S k' => no_loop' ss size o k k' /\ no_loop ss size o k'
   end.
 
@@ -109,30 +110,115 @@ Definition violate_loop_free (I : init) (T : trans)
   ~ (loop_free T ss size 0 k /\ ~ P ss.[k ]).
 
 
-Definition safety_k_init (I : init) (T : trans) (P : prop) (k : nat) : Prop :=
+Definition prop_k_init (I : init) (T : trans) (P : prop) (k : nat) : Prop :=
   forall ss : sseq,
   ~ (I ss.[0] /\ path T ss 0 k /\ ~ P ss.[k]).
 
-Definition safety_k_init_lf  (I : init) (T : trans) (P : prop) (size k : nat) : Prop :=
-  forall ss : sseq,
-  ~ (I ss.[0] /\ loop_free T ss size 0 k /\ ~ P ss.[k]).
-
 Fixpoint safety_k (I : init) (T : trans) (P : prop) (k : nat) : Prop :=
   match k with
-  | O => safety_k_init I T P k
-  | S k' => safety_k I T P k' /\ safety_k_init I T P k
+  | O => prop_k_init I T P k
+  | S k' => safety_k I T P k' /\ prop_k_init I T P k
   end.
+
+Definition prop_k_init_lf  (I : init) (T : trans) (P : prop) (size k : nat) : Prop :=
+  forall ss : sseq,
+  ~ (I ss.[0] /\ loop_free T ss size 0 k /\ ~ P ss.[k]).
 
 Fixpoint safety_k_offset (P : prop) (ss : sseq) (o k: nat) : Prop :=
   match k with
   | O => True
-  | S 0  => P ss.[o]
   | S k' => safety_k_offset P ss o k' /\ P ss.[o+k']
   end.
 
 (**)
 
-Lemma path_skipn : forall (T : trans) (i j : nat),
+Lemma not_and_imply3 :
+  forall (p1 p2 p3:Prop), 
+  ~(p1 /\ p2 /\ ~p3) -> (p1 /\ p2 -> p3).
+Proof.
+  intros. tauto.
+  (*revert H0.
+  apply or_to_imply.
+  apply not_and_or in H.
+  destruct H.
+  - left. apply or_not_and. auto.
+  - apply not_and_or in H.
+    destruct H.
+    + left. apply or_not_and. auto.
+    + right. apply NNPP in H. apply H.*)
+Qed.
+
+Lemma imply_to_not_and3 :
+  forall (p1 p2 p3:Prop), 
+  (p1 /\ p2 -> p3) -> ~(p1 /\ p2 /\ ~p3).
+Proof.
+  intros. tauto.
+  (*apply or_not_and.
+  apply imply_to_or in H.
+  destruct H. 
+  - apply not_and_or in H.
+    destruct H. 
+    + left. apply H.
+    + right. apply or_not_and. auto.
+  - right. apply or_not_and. auto.*)
+Qed.
+
+Lemma and_to_imply_premise :
+  forall (p1 p2 p3:Prop),
+  (p1 /\ p2 -> p3) -> (p1 -> p2 -> p3).
+Proof.
+  intros. tauto.
+  (*apply imply_to_or in H.
+  destruct H.
+  - apply not_and_or in H.
+    firstorder.
+  - apply H.*)
+Qed.
+
+Lemma not_ntq_not_pq :
+  forall (p q:Prop),
+    ~(p /\ True /\ q) -> ~(p /\ q).
+Proof.
+  firstorder.
+Qed.
+
+Lemma safety_path_lf :
+  forall (I:init) (T:trans) (P:prop) (size:nat),
+  forall (i:nat),
+    prop_k_init I T P i ->
+    (forall (size:nat), prop_k_init_lf I T P size i).
+Proof.
+  intros.
+  unfold prop_k_init in H.
+  unfold prop_k_init_lf.
+  unfold loop_free.
+  intros.
+
+  assert (forall (p1 p2 p3 p4:Prop), (p1 /\ p2 /\ p3 -> p4) -> (~(p1 /\ (p2 /\ p3) /\ ~p4))) by firstorder.
+
+  apply H0.
+  intros.
+  decompose [and] H1.
+  revert H4; revert H2.
+
+  apply and_to_imply_premise.
+  apply or_to_imply.
+
+  assert (forall (p q:Prop), ~(p /\ ~q) -> (~p \/ q)).
+  intros.
+  apply not_and_or in H2.
+  destruct H2.
+  left; apply H2. right; apply NNPP; apply H2.
+
+  apply H2. 
+  assert (forall (p1 p2 p3:Prop), ~(p1 /\ p2 /\ p3) -> ~((p1 /\ p2) /\ p3)) by firstorder.
+  apply H3.
+  apply H.
+Qed.
+
+(**)
+
+Lemma skipn_path : forall (T : trans) (i j : nat),
   forall ss : sseq,
   path T ss j i  -> path T (skipn j ss) 0 i.
 Proof.
@@ -146,7 +232,7 @@ Proof.
       destruct i. firstorder.
       unfold path; fold path.
       simpl.
-      rewrite <- plus_n_O.
+      (*rewrite <- plus_n_O.*)
       tauto.
     }
     apply H0.
@@ -155,22 +241,23 @@ Proof.
     split.
     apply IHi.
     destruct i; firstorder.
-    clear IHi.
-    rewrite skipn_nth.
-    rewrite skipn_nth.
-    replace (j + i) with (i + j).
-    replace (j + S i) with (S i + j).
-    simpl in *.
-    destruct i.
-    simpl in *.
-    rewrite Nat.add_1_r in H.
-    auto.
-    tauto.
-    omega.
-    omega.
+    + clear IHi.
+      rewrite skipn_nth.
+      rewrite skipn_nth.
+      (*replace (j + i) with (i + j).*)
+      (*replace (j + S i) with (S i + j).*)
+      simpl in *.
+      decompose [and] H. clear H.
+      destruct i.
+      * simpl in *.
+        (*rewrite Nat.add_1_r in H.
+        rewrite Nat.add_0_r in H.*)
+        auto.
+      * (*rewrite Nat.add_1_r in H.*)
+        auto.
 Qed.
 
-Lemma no_loop'_skipn : forall (size i j k : nat),
+Lemma skipn_no_loop' : forall (size i j k : nat),
   forall ss : sseq,
   no_loop' ss size j k i ->
   no_loop' (skipn j ss) size 0 k i.
@@ -179,28 +266,21 @@ Proof.
   destruct i.
   - simpl in *.
     do 2 rewrite skipn_nth.
-    auto.
-
+    apply H.
   - induction i.
     + simpl in *.
       do 3 rewrite skipn_nth.
-      simpl in *.
-      auto.
-
+      apply H.
     + simpl.
       split.
-      simpl in H.
-      do 2 rewrite skipn_nth.
-      tauto.
-
-      simpl in H.
-      split.
-      do 2 rewrite skipn_nth.
-      tauto.
-      firstorder.
+      * do 2 rewrite skipn_nth.
+        firstorder.
+      * simpl in H.
+        do 2 rewrite skipn_nth.
+        tauto.
 Qed.
 
-Lemma no_loop_skipn : forall (size i j : nat),
+Lemma skipn_no_loop : forall (size i j : nat),
   forall ss : sseq,
   no_loop ss size j i -> no_loop (skipn j ss) size 0 i.
 Proof.
@@ -224,11 +304,11 @@ Proof.
     tauto.
     destruct H1.
     clear H.
-    apply no_loop'_skipn in H0.
+    apply skipn_no_loop' in H0.
     tauto.
 Qed.
 
-Lemma prop_skipn : forall (P : prop) (i k : nat),
+Lemma skipn_prop : forall (P : prop) (i k : nat),
   forall ss : sseq,
   i >= k -> ~ P ss.[i] -> ~ P (skipn (i - k) ss).[k].
 Proof.
@@ -243,7 +323,7 @@ Qed.
 
 Lemma le_safety_relation : 
   forall (i k : nat) (I : init) (T : trans) (P : prop),
-  i <= k -> safety_k I T P k -> safety_k_init I T P i.
+  i <= k -> safety_k I T P k -> prop_k_init I T P i.
 Proof.
   intros.
   apply Nat.lt_eq_cases in H. 
@@ -251,7 +331,7 @@ Proof.
   - induction k.  
     + easy.
     + destruct (Nat.lt_ge_cases i k).
-      * assert (H2 : safety_k I T P k /\ safety_k_init I T P k).
+      * assert (H2 : safety_k I T P k /\ prop_k_init I T P k).
         destruct k; firstorder; now rewrite <- plus_n_O in H0.
         apply IHk.
         auto.
@@ -281,7 +361,8 @@ Proof.
     firstorder.
 Qed.
 
-Local Lemma split_no_loop_latter'' : forall (ss : sseq) (size i j k : nat) ,
+Local Lemma split_no_loop_latter'' : 
+  forall (ss : sseq) (size i j k : nat),
   no_loop' ss size i (S k) (S j) <->
     neq_states ss.[(i + (S k))] ss.[i] size /\
     no_loop' ss size (S i) k j.
@@ -294,12 +375,12 @@ Proof.
   - induction j.
     + simpl.
       intros.
-      now rewrite <- Nat.add_succ_r; rewrite <- Nat.add_succ_r;
-        rewrite <-  Nat.add_1_r; rewrite <- (plus_n_O i);
-          rewrite <- (Nat.add_1_r i).
+      do 3 rewrite <- Nat.add_succ_r.
+      rewrite <-  Nat.add_1_r; rewrite <- (plus_n_O i).
+      tauto.
     + intros.
       simpl in *.
-      assert (neq_states ss.[(i + S k)] ss.[i] size /\
+      (*assert (neq_states ss.[(i + S k)] ss.[i] size /\
         neq_states ss.[S (i + k)] ss.[S (i + S (S j))] size /\
         neq_states ss.[S (i + k)] ss.[S (i + S j)] size /\
         no_loop' ss size (S i) k j <->
@@ -307,9 +388,14 @@ Proof.
             neq_states ss.[S (i + k)] ss.[S (i + S j)] size /\
             no_loop' ss size (S i) k j ) /\
           neq_states ss.[S (i + k)] ss.[S (i + S (S j))] size)
-        by tauto.
-      now rewrite H; rewrite <- IHj; rewrite <- Nat.add_succ_r;
-        rewrite <- Nat.add_succ_r.
+        by tauto.*)
+      assert (forall (p1 p2 p3 p4 p5:Prop),
+        (p1 <-> (p2 /\ p3 /\ p4) /\ p5) <->
+        (p1 <-> p2 /\ (p3 /\ p4) /\ p5)) by tauto.
+      rewrite <- H.
+      rewrite <- IHj.
+      do 2 rewrite <- Nat.add_succ_r.
+      tauto.
 Qed. (*26*)
 
 Local Lemma split_no_loop_latter' : forall (ss : sseq) (size j i : nat),
@@ -364,7 +450,6 @@ Proof.
   - unfold path.
     tauto.
   - unfold path; fold path; simpl.
-    rewrite <- plus_n_O.
     tauto.
 Qed. (*8*)
 
@@ -374,14 +459,19 @@ Lemma cons_path : forall (ss : sseq) (T : trans) (i j : nat),
   path T ss i (S j).
 Proof.
   destruct j.
-  - unfold path. simpl.
+  - unfold path.
+    rewrite Nat.add_0_r.
     rewrite Nat.add_1_r.
     tauto.
-  - induction j. simpl. 
-    rewrite Nat.add_1_r.
-    tauto.
-    simpl. 
-    split; firstorder; now rewrite Nat.add_succ_r in *.
+  - induction j. 
+    + simpl.
+      rewrite Nat.add_1_r.
+      do 2 rewrite Nat.add_succ_r.
+      rewrite Nat.add_0_r.
+      tauto.
+    + simpl.
+      split; firstorder;
+      now do 5 rewrite Nat.add_succ_r in *.
 Qed. (*13*)
 
 Lemma shift_path : forall (ss : sseq) (T : trans) (i j : nat), 
