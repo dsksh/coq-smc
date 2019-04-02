@@ -41,6 +41,21 @@ Proof.
 Qed.
 *)
 
+Lemma state_sseq :
+  forall (s:state), (fun _ => s).[0] = s.
+Proof.
+  intros. unfold nth. reflexivity.
+Qed.
+
+Lemma prop_state_sseq :
+  forall (p : state -> Prop),
+    (forall (ss:sseq), p ss.[0]) ->
+    (forall (s:state), p s).
+Proof.
+  intros.
+  rewrite <- state_sseq. apply H.
+Qed.
+
 (**)
 
 Definition init : Type := state -> Prop.
