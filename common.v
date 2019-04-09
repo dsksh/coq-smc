@@ -1,6 +1,5 @@
 Require Export ZArith.
 Require Export logic.
-Require Import Fourier.
 (*Require Import FunctionalExtensionality.*)
 (*Require Export SMTC.Tactic.
 Require Import SMTC.Integers.*)
@@ -871,139 +870,14 @@ Proof.
 Qed.
 *)
 
-(*
-Definition shorter_ss' (ss1 ss2 : sseq) (o i : nat) : Prop :=
-  let i1 := loop_state ss1 o i in
-  let i2 := find_state ss1 o i1 i1 in
-  forall (j:nat), 
-    (j <= i2 /\ ss2.[j] = ss1.[j]) \/
-    (j >=  i2 /\ ss2.[j] = ss1.[i1+(j-i2)]).
-*)
-
-(*
-Definition shorter_ss (ss1 ss2 : sseq) (i d: nat) : Prop :=
-  forall (j : nat),
-  (j <= i /\ ss2.[j] = ss1.[j]) \/
-  (j >= i /\ ss2.[j] = ss1.[j+d]).
-
-Lemma skipn_shorter_ss :
-  forall (i j d : nat) (ss1 ss2 : sseq),
-  shorter_ss ss1 ss2 (i+j) d ->
-  shorter_ss (skipn i ss1) (skipn i ss2) j d.
-Proof.
-  induction i.
-  - intros.
-    rewrite -> Nat.add_0_l in H.
-    unfold shorter_ss.
-    intros.
-    do 3 rewrite -> skipn_nth.
-    do 2 rewrite -> Nat.add_0_l.
-    apply H.
-  - intros.
-    rewrite -> Nat.add_succ_comm in H.
-    apply IHi in H.
-    unfold shorter_ss.
-    intros.
-    unfold shorter_ss in H.
-    assert(S j0 <= S j /\ (skipn i ss2).[S j0] = (skipn i ss1).[S j0] \/
-       S j0 >= S j /\ (skipn i ss2).[S j0] = (skipn i ss1).[S j0 + d]) by easy.
-    destruct H0.
-    + destruct H0.
-      left.
-      split.
-      { omega. }
-      { rewrite <- Nat.add_1_l.
-        do 2 rewrite -> split_skipn.
-        do 2 rewrite -> skipn_nth with (n := 1).
-        rewrite -> Nat.add_1_l.
-        apply H1. }
-    + destruct H0.
-      { right.
-        split.
-        { omega. }
-        { rewrite <- Nat.add_1_l.
-          do 2 rewrite -> split_skipn.
-          do 2 rewrite -> skipn_nth with (n := 1).
-          rewrite -> Nat.add_1_l.
-          replace (1+(j0+d)) with (S j0 + d).
-          apply H1.
-          omega. } }
-Qed.
-
-Definition shorter_ss' (ss1 ss2 : sseq) (i d: nat) : Prop :=
-  forall (j : nat),
-  (0 < j <= i /\ ss2.[j] = ss1.[j]) \/
-  (0 < j /\ i <= j /\ ss2.[j] = ss1.[j + d]).
-
-Lemma skipn_shorter_ss' :
-  forall (i j d : nat) (ss1 ss2 : sseq),
-  shorter_ss' (skipn i ss1) (skipn i ss2) j d ->
-  shorter_ss' ss1 ss2 (i+j) d.
-Proof.
-  induction i.
-  - intros.
-    rewrite -> Nat.add_0_l.
-    unfold shorter_ss' in *.
-    intros.
-    assert (
-      0 < j0 <= j /\ (skipn 0 ss2).[j0] = (skipn 0 ss1).[j0] \/
-      0 < j0 /\ j <= j0 /\ (skipn 0 ss2).[j0] = (skipn 0 ss1).[j0 + d]) by easy.
-    do 3 rewrite -> skipn_nth in H0.
-    do 2 rewrite -> Nat.add_0_l in H0.
-    apply H0.
-  - intros.
-    rewrite -> Nat.add_succ_comm.
-
-    (* rewrite <- Nat.add_1_r in H.
-    do 2 rewrite -> split_skipn' in H.
-    apply IHi in H. 
-    *)
-
-    apply IHi.
-    unfold shorter_ss'.
-    intros.
-    unfold shorter_ss' in H.
-    assert(
-      0 < pred j0 <= j /\
-      (skipn (S i) ss2).[pred j0] = (skipn (S i) ss1).[pred j0] \/
-      0 < pred j0 /\ j <= pred j0 /\ 
-       (skipn (S i) ss2).[pred j0] = (skipn (S i) ss1).[pred j0 + d]) by easy.
-
-    destruct H0.
-    + destruct H0.
-      left; split.
-      * omega.
-      * rewrite <- Nat.add_1_l with (n := i) in H1.
-        do 2 rewrite -> split_skipn in H1.
-        do 2 rewrite -> skipn_nth with (n := 1) in H1.
-        replace (1 + pred j0) with j0 in H1.
-        apply H1.
-        omega.
-    + destruct H0.
-      right; split.
-      * omega.
-      * split.
-        { omega. }
-        { rewrite <- Nat.add_1_l with (n := i) in H1.
-          do 2 rewrite -> split_skipn in H1.
-          do 2 rewrite -> skipn_nth with (n := 1) in H1.
-          replace (1 + pred j0) with (j0) in H1.
-          replace (1 + (pred j0 + d)) with (j0+d) in H1.
-          apply H1.
-          omega. omega. }
-Qed.
-*)
-
 Definition shorter_ss_l (ss1 ss2 : sseq) (o i: nat) : Prop :=
   forall (j : nat), j <= i-o -> ss1.[i-j] = ss2.[i-j].
 
-(*
-Definition shorter_ss_l (ss1 ss2 : sseq) (i: nat) : Prop :=
-  forall (j : nat), j <= i -> ss1.[j] = ss2.[j].
-*)
-
 Definition shorter_ss_u (ss1 ss2 : sseq) (i d: nat) : Prop :=
-  forall (j : nat), ss1.[i+j] = ss2.[i+j+d].
+  forall (j : nat), ss1.[i+j+d] = ss2.[i+j].
+
+Definition shorter_ss (ss1 ss2 : sseq) (o i d: nat) : Prop :=
+  shorter_ss_l ss1 ss2 o i /\ shorter_ss_u ss1 ss2 i d.
 
 Lemma skipn_shorter_ss_l :
   forall (i j o : nat) (ss1 ss2 : sseq),
@@ -1033,29 +907,6 @@ Proof.
   omega.
 Qed.
 
-(*
-Lemma skipn_shorter_ss_l :
-  forall (i j : nat) (ss1 ss2 : sseq),
-  shorter_ss_l ss1 ss2 (i+j) ->
-  shorter_ss_l (skipn i ss1) (skipn i ss2) j.
-Proof.
-  destruct i.
-  - intros.
-    unfold shorter_ss_l in *.
-    intros.
-    do 2 rewrite -> skipn_nth.
-    do 1 rewrite -> Nat.add_0_l.
-    apply H.
-    apply H0.
-  - unfold shorter_ss_l.
-    intros.
-    assert(S i + j0 <= S i + j -> ss1.[S i + j0] = ss2.[S i + j0]) by apply H.
-    do 2 rewrite -> skipn_nth with (n := S i).
-    apply H1.
-    omega.
-Qed.
-*)
-
 Lemma skipn_shorter_ss_u :
   forall (i j d : nat) (ss1 ss2 : sseq),
   shorter_ss_u ss1 ss2 (i+j) d <->
@@ -1079,67 +930,168 @@ Proof.
     omega.
 Qed.
 
-Lemma shorter_ss'_prop :
+Lemma skipn_shorter_ss :
+  forall (i j o d : nat) (ss1 ss2 : sseq),
+  shorter_ss ss1 ss2 o (i+j) d -> o <= i ->
+  shorter_ss (skipn i ss1) (skipn i ss2) 0 j d.
+Proof.
+  unfold shorter_ss.
+  intros.
+  destruct H.
+  split.
+  - apply skipn_shorter_ss_l with (o:=o).
+    apply H.
+    apply H0.
+  - apply skipn_shorter_ss_u.
+    apply H1.
+Qed.
+
+Lemma skipn_shorter_ss' :
+  forall (i j d : nat) (ss1 ss2 : sseq),
+  shorter_ss (skipn i ss1) (skipn i ss2) 0 j d ->
+  shorter_ss ss1 ss2 i (i+j) d.
+Proof.
+  unfold shorter_ss.
+  intros.
+  destruct H.
+  split.
+  - apply skipn_shorter_ss_l'.
+    apply H.
+  - apply skipn_shorter_ss_u.
+    apply H0.
+Qed.
+
+Lemma shorter_ss_prop :
   forall (P : prop) (i d : nat) (ss1 ss2 : sseq),
-  P ss1.[i] /\ shorter_ss' ss1 ss2 i d ->
+  P ss1.[i] /\ shorter_ss ss1 ss2 0 i d ->
   P ss2.[i].
 Proof.
-  induction i.
-  - intros.
-    destruct H.
-    unfold shorter_ss' in H0.
-    assert (0 <= 0 /\ ss2.[0] = ss1.[0] \/
-      0 > 0 /\ ss2.[0] = ss1.[0+d]) by easy.
-    destruct H1.
-    + destruct H1.
-      rewrite -> H2.
-      apply H.
-    + destruct H1.
-      contradict H1.
-      omega.
-  - intros.
-    rewrite <- Nat.add_1_l in *.
-    rewrite <- skipn_nth in *.
-    destruct H.
-    apply skipn_shorter_ss' in H0.
-    apply IHi with (d := d) (ss1 := (skipn 1 ss1)).
-    tauto.
+  unfold shorter_ss.
+  unfold shorter_ss_l.
+  intros.
+  assert (ss1.[i-0] = ss2.[i-0])
+  by (apply H; omega).
+  rewrite -> Nat.sub_0_r in H0.
+  rewrite <- H0.
+  apply H.
 Qed.
 
-Lemma shorter_ss'_prop' :
+Lemma shorter_ss_prop0 :
   forall (P : prop) (i d : nat) (ss1 ss2 : sseq),
-  P ss1.[i+d+d] /\ shorter_ss' ss1 ss2 i d ->
+  P ss1.[i+d+d] /\ shorter_ss ss1 ss2 0 i d ->
   P ss2.[i+d].
 Proof.
-  induction i.
-  - intros.
-    destruct H.
-    unfold shorter_ss' in H0.
-    assert (d <= 0 /\ ss2.[d] = ss1.[d] \/
-      d > 0 /\ ss2.[d] = ss1.[d+d]) by easy.
-    destruct H1.
-    + destruct H1.
-      assert (d = 0) by omega.
-      rewrite -> H3 in *.
-      do 2 rewrite -> Nat.add_0_r in *.
-      rewrite -> H2.
-      apply H.
-    + destruct H1.
-      rewrite -> Nat.add_0_l in *.
-      rewrite -> H2.
-      apply H.
-  - intros.
-    rewrite <- Nat.add_1_l in H.
-    rewrite <- skipn_nth in *.
-    destruct H.
-    apply skipn_shorter_ss' in H0.
-    rewrite <- Nat.add_1_r.
-    rewrite -> split_skipn.
-    apply skipn_shorter_ss'.
-    apply IHi with (d := d) (ss1 := (skipn 1 ss1)).
-    tauto.
+  unfold shorter_ss.
+  unfold shorter_ss_u.
+  intros.
+  destruct H. destruct H0.
+  assert (ss1.[i+d+d] = ss2.[i+d])
+  by apply H1.
+  rewrite <- H2.
+  apply H.
 Qed.
 
+Lemma shorter_ss_prop1 :
+  forall (T : trans) (len i d : nat) (ss1 ss2 : sseq),
+  path T ss1 0 len -> ss1.[i] = ss1.[i+d] ->
+  shorter_ss ss1 ss2 0 i d ->
+  path T ss2 0 (len-d).
+Proof.
+  unfold shorter_ss.
+  unfold shorter_ss_l.
+  unfold shorter_ss_u.
+  intros.
+  destruct H1.
+  induction len.
+  - auto.
+  - destruct (Nat.le_gt_cases (S len) d).
+    + assert (S len - d = 0) as A by omega.
+      rewrite -> A; clear A. 
+      simpl. intuition.
+    + destruct (Nat.le_gt_cases len d).
+      * assert (len = d) by omega.
+        assert (S len - d = 1) as A by omega.
+        rewrite -> A; clear A.
+        simpl.
+        destruct (Nat.le_gt_cases 1 i).
+        { split.
+          { auto. }
+          { 
+            rewrite <- Nat.add_1_l in H.
+            apply split_path in H; destruct H.
+            simpl in H.
+
+            assert (0 = i-i) as A1 by omega.
+            rewrite -> A1.
+            assert (S (i-i) = i-(pred i)) as A2 by omega.
+            rewrite -> A2.
+            rewrite <- H1.
+            rewrite <- H1.
+            rewrite <- A2.
+            rewrite <- A1.
+            apply H.
+            omega. omega. } }
+        { split.
+          { auto. }
+          { assert (i = 0) by omega.
+            assert (0 = i+0) as A1 by omega.
+            rewrite -> A1.
+            assert (S (i+0) = i+1) as A2 by omega.
+            rewrite -> A2.
+            rewrite <- H2.
+            rewrite <- H2.
+            rewrite <- A2.
+            rewrite <- A1.
+            rewrite -> Nat.add_0_l.
+            rewrite -> Nat.add_1_l.
+
+            simpl in H.
+            rewrite <- H5.
+            apply H. } }
+      * clear H3.
+        assert (S len - d = S (len - d)) as A by omega.
+        rewrite -> A; clear A.
+        simpl.
+        split.
+        { apply IHlen.
+          rewrite <- Nat.add_1_r in H.
+          apply split_path in H; destruct H.
+          apply H. }
+        { 
+          destruct (Nat.lt_ge_cases (len - d) i).
+          { remember (i-(len-d)) as j.
+            assert (len-d = i-j) as A0 by omega.
+            rewrite -> A0.
+            assert (S (i-j) = i - pred j) as A1 by omega.
+            rewrite -> A1.
+            rewrite <- H1.
+            rewrite <- H1.
+            rewrite <- A1; clear A1.
+            rewrite <- A0; clear A0.
+
+            assert (S len = S (len-d) + d) as A2 by omega.
+            rewrite -> A2 in H; clear A2.
+            apply split_path in H; destruct H.
+            simpl in H; destruct H.
+            apply H6.
+            omega.
+            omega. }
+          { remember ((len-d)-i) as j.
+            assert (len-d = i+j) as A0 by omega.
+            rewrite -> A0.
+            assert (S (i+j) = i + S j) as A1 by omega.
+            rewrite -> A1.
+            rewrite <- H2.
+            rewrite <- H2.
+            rewrite <- A1; clear A1.
+            rewrite <- A0; clear A0.
+            replace (len-d+d) with len.
+            replace (S (len-d)+d) with (S len).
+            simpl in H; destruct H.
+            apply H5.
+            omega.
+            omega. } }
+Qed.
 
 Lemma not_no_loop'_eq_states :
   forall (j o i:nat) (ss:sseq),
@@ -1176,442 +1128,280 @@ Proof.
       * apply H0.
 Qed.
 
-Lemma not_no_loop_eq_states :
-  forall (i o:nat) (ss:sseq),
-  ~ no_loop ss o i ->
-  (*
-  exists (ss':sseq) (k:nat), k < i /\ ss.[o+i] = ss'.[o+k].
-  *)
-  ~(forall (ss':sseq) (k:nat), k >= i \/ ss.[o+i] <> ss'.[o+k]).
+Definition shorten_ss (ss : sseq) (li d i : nat) : state :=
+  match i-li with
+  | 0 => ss.[i]
+  | _ => ss.[i+d]
+  end.
+
+Lemma shorten_ss_shorter_ss :
+  forall (ss  : sseq) (i d : nat),
+  ss.[i] = ss.[i+d] ->
+  shorter_ss ss (shorten_ss ss i d) 0 i d.
 Proof.
+  unfold shorter_ss.
+  unfold shorter_ss_l.
+  unfold shorter_ss_u.
+  unfold shorten_ss.
+  unfold nth.
+  split.
+  - intros.
+    assert (i - j - i = 0) as A by omega.
+    rewrite -> A.
+    reflexivity.
+  - intros.
+    unfold shorten_ss.
+    unfold nth.
+    assert (i + j - i = j) as A by omega.
+    rewrite -> A.
+    destruct j.
+    + simpl.
+      rewrite -> Nat.add_0_r.
+      rewrite <- H.
+      reflexivity.
+    + reflexivity.
+Qed.
+
+Lemma not_no_loop_eq_states :
+  forall (i:nat) (ss:sseq),
+  ~ no_loop ss 0 i ->
+  (*
+  exists (ss':sseq) (j d:nat), 
+    j+d <= i /\ d > 0 /\ shorter_ss ss ss' 0 j d /\ ss.[i] = ss'.[i-d].
+  *)
+  ~(forall (ss':sseq) (j d:nat), 
+    d <= 0 \/ ~ shorter_ss ss ss' 0 j d \/ ss.[i] <> ss'.[i-d]
+    \/ j+d > i).
+Proof.
+  intros.
   induction i.
-  - intros.
-    contradict H.
-    simpl. intuition.
-  - intros.
-    simpl in H.
+  - contradict H. easy.
+  - simpl in H.
     apply not_and_or in H.
     destruct H.
-    + apply not_no_loop'_eq_states in H.
+    * apply not_no_loop'_eq_states in H.
       contradict H.
       intros.
-      assert (k >= S i \/ ss.[o+S i] <> ss.[o+k]) by easy.
-      destruct H0.
-      * left.
-        apply H0.
-      * right.
-        apply H0.
-    + apply IHi in H.
+      destruct (Nat.le_gt_cases (S i) k).
+      { left. omega. }
+      { right.
+        remember (shorten_ss ss k (S i - k)) as ss'.
+        assert (S i - k <= 0 \/ 
+          ~ shorter_ss ss ss' 0 k (S i - k) \/ ss.[S i] <> ss'.[S i - (S i - k)] \/ k + (S i - k) > S i) by apply H.
+        destruct H1.
+        { contradict H1. omega. }
+        { contradict H1.
+          do 2 rewrite -> Nat.add_0_l in H1.
+          apply and_not_or.
+          split.
+          { rewrite -> Heqss'.
+            assert (forall (p:Prop), p -> ~~p) as A by tauto.
+            apply A; clear A.
+            apply shorten_ss_shorter_ss.
+            assert (k + (S i - k) = S i) as A by omega.
+            rewrite -> A.
+            symmetry.
+            apply H1. }
+          { apply and_not_or.
+            split.
+            { assert (S i - (S i - k) = k) as A by omega.
+              rewrite -> A.
+              rewrite -> Heqss'.
+              unfold shorten_ss.
+              unfold nth.
+              replace (k-k) with 0.
+              assert (~ ss (S i) <> ss k <-> ss.[S i] = ss.[k]) as A0 by tauto.
+              rewrite -> A0.
+              apply H1.
+              omega. }
+            { assert (k + (S i - k) = S i) as A by omega.
+              rewrite -> A. 
+              omega. } } } }
+    * apply IHi in H.
       contradict H.
       intros.
-      assert (S k >= S i \/ ss.[o+S i] <> ss.[o+S k]) by easy.
+      (*remember (shorten_ss ss j d) as ss'.*)
+      assert (d <= 0 \/ 
+        ~ shorter_ss ss ss' 0 j d \/ ss.[S i] <> ss'.[S i - d] \/
+        j + d > S i) by apply H.
       destruct H0.
-      * left.
-        apply le_S_n in H0.
-        apply H0.
-      * Admitted.
-
-
-Lemma loop_path_prev_state :
-  forall (T:trans) (i:nat) (ss:sseq),
-  path T ss 0 i -> ~ no_loop ss 0 i ->
-  (* 
-  exists (j:nat), j < i /\ ss.[i] = ss.[j].
-  *)
-  ~(forall (j:nat), j < i -> ss.[i] <> ss.[j]).
-Proof.
-  Admitted.
-
-Lemma loop_path_prev_state' :
-  forall (T:trans) (i:nat) (ss:sseq),
-  path T ss 0 i ->
-  (forall (j:nat), j < i -> ss.[i] <> ss.[j]) ->
-  no_loop ss 0 i.
-Proof.
-  Admitted.
-
-Lemma safety_lf_not_path :
-  forall (I:init) (T:trans) (P:prop) (i j:nat),
-    prop_k_init_lf I T P i -> i > j ->
-    ~ prop_k_init I T P j.
-Proof.
-  Admitted.
-
-Lemma safety_lf_path0 :
-  forall (I:init) (T:trans) (P:prop),
-    (forall (i:nat), prop_k_init_lf I T P i) ->
-    prop_k_init I T P 0.
-Proof.
-  unfold prop_k_init.
-  unfold prop_k_init_lf.
-  intros.
-  assert ((forall (p1 p2 p3:Prop), ((p1 /\ p3 -> ~p2) <-> ~(p1 /\ p2 /\ p3)))) by tauto.
-  apply H0.
-  intros.
-  assert (~loop_free T ss 0 0).
-  { revert H1.
-    apply H0.
-    apply H. }
-  contradict H2.
-  unfold loop_free.
-  split.
-  - apply H2.
-  - simpl. intuition.
+      { left. apply H0. }
+      { destruct H0.
+        { right; left.
+          apply H0. }
+        { 
+          destruct (Nat.lt_ge_cases (S i) (j+d)).
+          { right; right; right.
+            omega. }
+          {
+            right; left.
+            contradict H0.
+            apply and_not_or.
+            split.
+            { 
+              unfold shorter_ss in H0.
+              unfold shorter_ss_u in H0.
+              destruct H0.
+              destruct (Nat.le_gt_cases (j+d) (S i)).
+              { assert (ss.[j + (S i - j - d) + d] = ss'.[j + (S i - j - d)]) as A by apply H2.
+                assert (j + (S i - j - d) + d = S i) as A0 by omega.
+                assert (j + (S i - j - d) = S i - d) as A1 by omega.
+                rewrite -> A0 in A.
+                rewrite -> A1 in A.
+                assert (~ ss.[S i] <> ss'.[S i - d] <-> ss.[S i] = ss'.[S i - d]) as A2 by tauto.
+                apply A2.
+                apply A. }
+            { assert (ss.[j + (S i - j - d) + d] = ss'.[j + (S i - j - d)]) as A by apply H2.
+              assert (j + (S i - j - d) + d = S i) as A0 by omega.
+              assert (j + (S i - j - d) = S i - d) as A1 by omega.
+              rewrite -> A0 in A.
+              rewrite -> A1 in A.
+              assert (~ ss.[S i] <> ss'.[S i - d] <-> ss.[S i] = ss'.[S i - d]) as A2 by tauto.
+              apply A2.
+              apply A. } }
+          { omega. } } } }
 Qed.
 
-Lemma safety_lf_path1 :
-  forall (I:init) (T:trans) (P:prop),
-    prop_k_init_lf I T P 0 ->
-    prop_k_init_lf I T P 1 ->
-    prop_k_init I T P 1.
+Lemma eq_states_no_loop :
+  forall (i:nat) (ss:sseq),
+   (forall (ss':sseq) (j d:nat), 
+    d <= 0 \/ ~ shorter_ss ss ss' 0 j d \/ ss.[i] <> ss'.[i-d]
+    \/ j+d > i) ->
+      no_loop ss 0 i.
 Proof.
-  unfold prop_k_init.
-  unfold prop_k_init_lf.
   intros.
-  assert ((forall (p1 p2 p3:Prop), ((p1 /\ p3 -> ~p2) <-> ~(p1 /\ p2 /\ p3)))) by tauto.
-  apply H1.
-  intros.
-  assert (~loop_free T ss 0 1).
-  { revert H2.
-    apply H1.
-    apply H0. }
-  contradict H3.
-  unfold loop_free.
-  split.
-  - apply H3.
-  - simpl.
-    destruct H2.
-    split.
-    contradict H4.
-    rewrite -> H4.
-    assert (loop_free T ss 0 0) by easy.
-    revert H2 H5.
-    apply imply_not_and3.
-    apply H.
-    intuition.
+  apply NNPP.
+  contradict H.
+  apply not_no_loop_eq_states in H.
+  apply H.
 Qed.
 
-Lemma safety_lf_path :
+Lemma safety_lf_path' :
   forall (I:init) (T:trans) (P:prop) (k:nat),
     (forall (j:nat), prop_k_init_lf I T P j) ->
     (forall (j:nat), j < k -> prop_k_init I T P j) ->
     prop_k_init I T P k.
 Proof.
-  intros.
   unfold prop_k_init.
   intros.
-  assert ((forall (p1 p2 p3:Prop), ((p1 /\ p3 -> ~p2) <-> ~(p1 /\ p2 /\ p3)))) by tauto.
-  apply H1.
-  intros.
-  destruct H2.
+  assert ((forall (p1 p2 p3:Prop), ((p1 /\ p3 -> ~p2) <-> ~(p1 /\ p2 /\ p3)))) as A by tauto.
+  apply A.
+  intros; destruct H1.
 
-  assert (~loop_free T ss 0 k).
-  { revert H2 H3.
-    assert ((forall (p1 p2 p3:Prop), (~(p1 /\ p3 /\ p2) <-> (p1 -> p2 -> ~p3)))) by tauto.
-    apply H2.
+  assert (~loop_free T ss 0 k) as A0.
+  { revert H1 H2.
+    assert ((forall (p1 p2 p3:Prop), (~(p1 /\ p3 /\ p2) <-> (p1 -> p2 -> ~p3)))) as A1 by tauto.
+    apply A1; clear A1.
     apply H. }
 
-  unfold loop_free in H4.
-  apply not_and_or in H4.
-  destruct H4.
-  apply H4.
-
-  contradict H4.
-
-  apply loop_path_prev_state' with (T:=T).
-  apply H4.
-  intros.
-
-  assert (prop_k_init I T P j).
-  apply H0. apply H5.
-
-  unfold prop_k_init in H6.
-
-  remember (k-j) as j'.
-  replace k with (j+j') in H4.
-  apply split_path in H4.
-  destruct H4.
-
-  assert (P ss.[j]).
-  revert H2 H4.
-  apply imply_not_and3.
-  apply H6.
+  unfold loop_free in A0.
+  apply not_and_or in A0.
+  destruct A0.
+  apply H3.
 
   contradict H3.
-  rewrite -> H3.
-  apply H8.
 
-  omega.
+  apply eq_states_no_loop.
+  intros.
+  assert (d <= 0 <-> ~ d > 0) as A2 by omega.
+  rewrite -> A2; clear A2.
+  do 3 (apply imply_to_or; intros).
+
+  rewrite -> H6 in H2.
+  unfold shorter_ss in H5; destruct H5.
+  unfold shorter_ss_l in H5.
+  assert (j <= j-0) as A3 by omega.
+  apply H5 in A3.
+  assert (j-j = 0) as A4 by omega.
+  rewrite -> A4 in A3; clear A4.
+  rewrite -> A3 in H1; clear A3.
+
+  destruct k.
+  - omega.
+  - assert (S k - d < S k) as A3 by omega.
+    apply H0 with (ss:=ss') in A3.
+    assert (~ j+d <= S k -> j+d > S k) as A4 by omega.
+    apply A4; clear A4.
+    contradict A3.
+    split.
+    + apply H1.
+    + split.
+      * apply shorter_ss_prop1 with (i:=j) (ss1:=ss).
+        { apply H3. }
+        { unfold shorter_ss_u in H7.
+          symmetry.
+          replace j with (j+0).
+          rewrite -> H7.
+          replace (j+0) with (j-0).
+          rewrite H5.
+          reflexivity.
+          omega. omega. omega. }
+        { easy. }
+      * apply H2.
 Qed.
 
-Lemma safety_lf_path' :
+Lemma safety_lf_path :
   forall (I:init) (T:trans) (P:prop) (k:nat),
     (forall (j:nat), j < k -> prop_k_init I T P j) ->
     prop_k_init_lf I T P k ->
     prop_k_init I T P k.
 Proof.
-  intros.
   unfold prop_k_init.
   intros.
-  assert ((forall (p1 p2 p3:Prop), ((p1 /\ p3 -> ~p2) <-> ~(p1 /\ p2 /\ p3)))) by tauto.
-  apply H1.
-  intros.
-  destruct H2.
+  assert ((forall (p1 p2 p3:Prop), ((p1 /\ p3 -> ~p2) <-> ~(p1 /\ p2 /\ p3)))) as A by tauto.
+  apply A.
+  intros; destruct H1.
 
-  assert (~loop_free T ss 0 k).
-  { revert H2 H3.
-    assert ((forall (p1 p2 p3:Prop), (~(p1 /\ p3 /\ p2) <-> (p1 -> p2 -> ~p3)))) by tauto.
-    apply H2.
+  assert (~loop_free T ss 0 k) as A0.
+  { revert H1 H2.
+    assert ((forall (p1 p2 p3:Prop), (~(p1 /\ p3 /\ p2) <-> (p1 -> p2 -> ~p3)))) as A1 by tauto.
+    apply A1; clear A1.
     apply H0. }
 
-  unfold loop_free in H4.
-  apply not_and_or in H4.
-  destruct H4.
-  apply H4.
-
-  contradict H4.
-
-  apply loop_path_prev_state' with (T:=T).
-  apply H4.
-  intros.
-
-  assert (prop_k_init I T P j).
-  { apply H. apply H5. }
-
-  unfold prop_k_init in H6.
-
-  remember (k-j) as j'.
-  replace k with (j+j') in H4.
-  apply split_path in H4.
-  destruct H4.
-
-  assert (P ss.[j]).
-  revert H2 H4.
-  apply imply_not_and3.
-  apply H6.
+  unfold loop_free in A0.
+  apply not_and_or in A0.
+  destruct A0.
+  apply H3.
 
   contradict H3.
-  rewrite -> H3.
-  apply H8.
 
-  omega.
+  apply eq_states_no_loop.
+  intros.
+  assert (d <= 0 <-> ~ d > 0) as A2 by omega.
+  rewrite -> A2; clear A2.
+  do 3 (apply imply_to_or; intros).
+
+  rewrite -> H6 in H2.
+  unfold shorter_ss in H5; destruct H5.
+  unfold shorter_ss_l in H5.
+  assert (j <= j-0) as A3 by omega.
+  apply H5 in A3.
+  assert (j-j = 0) as A4 by omega.
+  rewrite -> A4 in A3; clear A4.
+  rewrite -> A3 in H1; clear A3.
+
+  destruct k.
+  - omega.
+  - assert (S k - d < S k) as A3 by omega.
+    apply H with (ss:=ss') in A3.
+    assert (~ j+d <= S k -> j+d > S k) as A4 by omega.
+    apply A4; clear A4.
+    contradict A3.
+    split.
+    + apply H1.
+    + split.
+      * apply shorter_ss_prop1 with (i:=j) (ss1:=ss).
+        { apply H3. }
+        { unfold shorter_ss_u in H7.
+          symmetry.
+          replace j with (j+0).
+          rewrite -> H7.
+          replace (j+0) with (j-0).
+          rewrite H5.
+          reflexivity.
+          omega. omega. omega. }
+        { easy. }
+      * apply H2.
 Qed.
-
-
-(*
-
-Lemma safety_lf_path :
-  forall (I:init) (T:trans) (P:prop) (size:nat) (i:nat),
-    (forall (i:nat), prop_k_init_lf I T P size i) ->
-    prop_k_init I T P i.
-Proof.
-  unfold prop_k_init.
-  unfold prop_k_init_lf.
-  intros.
-  apply and_imply_not_and3.
-  intros.
-  destruct H0.
-  assert (no_loop ss size 0 i \/ ~no_loop ss size 0 i) by tauto.
-  destruct H2.
-  - assert (loop_free T ss size 0 i) by easy.
-    revert H0 H3.
-    apply imply_not_and3.
-    apply H.
-  - 
-
-
-  (*unfold prop_k_init.
-  unfold prop_k_init_lf.*)
-  induction i.
-  - unfold prop_k_init.
-    unfold prop_k_init_lf.
-    intros.
-    assert (loop_free T ss size 0 0) by easy.
-    apply and_imply_not_and3.
-    intros.
-    destruct H1.
-    revert H1 H0.
-    apply imply_not_and3.
-    apply H.
-  - intros.
-    unfold prop_k_init.
-    intros.
-    apply and_imply_not_and3.
-    intros.
-    destruct H0.
-    assert (no_loop ss size 0 (S i) \/ ~no_loop ss size 0 (S i)) by tauto.
-    destruct H2.
-    + unfold prop_k_init_lf in H.
-      assert (loop_free T ss size 0 (S i)) by easy.
-      revert H0 H3.
-      apply imply_not_and3.
-      apply H.
-
-
-    assert (neq_states ss.[S i] ss.[i] size \/
-      ~neq_states ss.[S i] ss.[i] size) by tauto.
-    destruct H2.
-    + rewrite <- Nat.add_1_r in H1.
-      (*rewrite split_path in H1.
-      destruct H1.*)
-      assert (loop_free T ss size i 1).
-      { apply split_lf_path.
-        apply H1.
-        rewrite -> Nat.add_1_r.
-        apply H2. }
-      
-      
-      assert ().
-
-
-    apply IHi.
-    apply H.
-    unfold prop_k_init.
-    intros.
-
-
-Lemma safety_lf_path' :
-  forall (I:init) (T:trans) (P:prop) (size:nat),
-    (forall (i:nat), prop_k_init_lf I T P size i) ->
-    (forall (i j:nat), i >= j -> prop_k_init I T P j).
-Proof.
-  intros.
-  unfold prop_k_init.
-  unfold prop_k_init_lf in H.
-  (*unfold loop_free in H.*)
-  intros.
-  induction i.
-  - assert (j = 0) by intuition.
-    assert (no_loop ss size 0 j) by now rewrite -> H1.
-    apply and_imply_not_and3.
-    intros.
-    destruct H3.
-    assert (loop_free T ss size 0 j) by now unfold loop_free.
-    revert H3 H5.
-    apply imply_not_and3.
-    apply H.
-  - apply IHi. Admitted.
-
-(*  - assert (loop_free T ss size 0 j \/ ~loop_free T ss size 0 j) by tauto.
-    destruct H1.
-    + apply and_imply_not_and3.
-      intros.
-      destruct H2.
-      revert H2 H1.
-      apply imply_not_and3.
-      apply H.
-    + contradict H1.
-      decompose [and] H1; clear H1.
-      unfold loop_free.
-      split.
-      * apply H4.
-      * assert (~no_loop ss size 0 j).
-        revert H2 H4 H5.
-        assert (forall (p1 p2 p3 p4:Prop), 
-          ~(p1 /\ (p2 /\ p4) /\ p3) -> (p1 -> p2 -> p3 -> ~p4)).
-        { intros. revert H2 H3 H4.
-          apply not_and_or in H1.
-          destruct H1. tauto.
-          apply not_and_or in H1.
-          destruct H1.
-          apply not_and_or in H1.
-          destruct H1. tauto.
-          tauto. tauto. }
-        apply H1.
-        apply H.
-        Admitted.
-*)
-
-(*
-Lemma safety_lf_path :
-  forall (I:init) (T:trans) (P:prop) (size:nat),
-    (forall (i:nat), prop_k_init_lf I T P size i) ->
-    (forall (i:nat), prop_k_init I T P i).
-Proof.
-  intros.
-  unfold prop_k_init.
-  unfold prop_k_init_lf in H.
-  (*unfold loop_free in H.*)
-  intros.
-  induction i.
-  - assert (no_loop ss size 0 0) by intuition.
-    apply and_imply_not_and3.
-    intros.
-    decompose [and] H1; clear H1.
-    assert (loop_free T ss size 0 0) by now unfold loop_free.
-    revert H2 H1.
-    apply imply_not_and3.
-    apply H.
-  - assert (loop_free T ss size 0 (S i) \/ ~loop_free T ss size 0 (S i)) by tauto.
-    destruct H0.
-    + apply and_imply_not_and3.
-      intros.
-      decompose [and] H1; clear H1.
-      revert H2 H0.
-      apply imply_not_and3.
-      apply H.
-    + contradict H0.
-      decompose [and] H0; clear H0.
-      unfold loop_free.
-      split.
-      * apply H3.
-      * simpl.
-
-loop_free T ss size 0 k -> 
-~(I ss.[0] /\ path T ss 0 k /\ ~P ss.[k])
-
-Lemma safety_lf_path :
-  forall (I:init) (T:trans) (P:prop) (size:nat),
-    (forall (i:nat), prop_k_init_lf I T P size i) ->
-    (forall (k i:nat), i <= k -> prop_k_init I T P i).
-Proof.
-  intros.
-  unfold prop_k_init.
-  unfold prop_k_init_lf in H.
-  (*unfold loop_free in H.*)
-  intros.
-  induction k.
-  - assert (i = 0) by intuition.
-    assert (no_loop ss size 0 i) by now rewrite -> H1.
-    apply and_imply_not_and3.
-    intros.
-    decompose [and] H3; clear H3.
-    assert (loop_free T ss size 0 i) by now unfold loop_free.
-    revert H4 H3.
-    apply imply_not_and3.
-    apply H.
-  - 
-
-
-Lemma safety_lf_path :
-  forall (I:init) (T:trans) (P:prop) (size:nat),
-    (forall (i:nat), prop_k_init_lf I T P size i) ->
-    (forall (i:nat), prop_k_init I T P i).
-Proof.
-  intros.
-  unfold prop_k_init.
-  unfold prop_k_init_lf in H.
-  (*unfold loop_free in H.*)
-  intros.
-  induction i.
-  - assert (no_loop ss size 0 0) by intuition.
-    apply and_imply_not_and3.
-    intros.
-    decompose [and] H1; clear H1.
-    assert (loop_free T ss size 0 0) by now unfold loop_free.
-    revert H2 H1.
-    apply imply_not_and3.
-    apply H.
-
-  - assert (loop_free T ss size 0 (S i) \/ ~loop_free T ss size 0 (S i)) by tauto.
-    destruct H0.
-    + apply and_imply_not_and3.
-      intros.
-      decompose [and] H1; clear H1.
-      revert H2 H0.
-      apply imply_not_and3.
-      apply H.
-    + 
-*)
 
 (* eof *)
