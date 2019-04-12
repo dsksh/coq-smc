@@ -106,7 +106,7 @@ Qed.
 
 (**)
 
-Theorem soundness_algorithm1 :
+Theorem soundness_algorithm1' :
   forall (I : init) (T : trans) (P : prop) (k : nat),
   algorithm1_post I T P k -> 
   forall (i : nat), prop_k_init_lf I T P i.
@@ -117,6 +117,17 @@ Proof.
     now apply case1.
   - revert H0.
     now apply case2.
+Qed.
+
+Theorem soundness_algorithm1 :
+  forall (I : init) (T : trans) (P : prop) (k : nat),
+  algorithm1_post I T P k -> 
+  forall (i : nat), prop_k_init I T P i.
+Proof.
+  intros * H.
+  apply safety_lf_path.
+  apply soundness_algorithm1' with (k := k).
+  apply H.
 Qed.
 
 (* eof *)

@@ -1093,9 +1093,9 @@ Proof.
   apply H.
 Qed.
 
-Lemma safety_lf_path :
+Lemma safety_lf_path'' :
   forall (I:init) (T:trans) (P:prop) (k:nat),
-    (forall (j:nat), j < k -> prop_k_init I T P j) ->
+  ( forall (j:nat), j < k -> prop_k_init I T P j ) ->
     prop_k_init_lf I T P k ->
     prop_k_init I T P k.
 Proof.
@@ -1155,6 +1155,52 @@ Proof.
           omega. omega. omega. }
         { easy. }
       * apply H2.
+Qed.
+
+Lemma safety_lf_path' :
+  forall (I:init) (T:trans) (P:prop) (k : nat),
+  ( forall (i : nat), i <= k -> prop_k_init_lf I T P i ) ->
+    forall (j : nat), j <= k -> prop_k_init I T P j.
+Proof.
+  intros. revert j H0.
+  induction k.
+  - intros.
+    apply safety_lf_path''.
+    intros.
+    contradict H1. omega.
+    apply H. omega.
+  - intros.
+    apply safety_lf_path''.
+    intros.
+    assert (j0 <= k) by omega.
+    apply IHk.
+    intros.
+    apply H.
+    omega.
+    omega.
+    apply H.
+    omega.
+Qed.
+
+Lemma safety_lf_path :
+  forall (I:init) (T:trans) (P:prop),
+  ( forall (i : nat), prop_k_init_lf I T P i ) ->
+    forall (j : nat), prop_k_init I T P j.
+Proof.
+  intros * H.
+  induction j as [|j IHj].
+  - apply safety_lf_path''.
+    intros j H0.
+    contradict H0. omega.
+    apply H.
+  - apply safety_lf_path''.
+    intros j0 _H0.
+    assert (j0 <= S j) as A by omega.
+    apply safety_lf_path' with (k := S j).
+    intros i _H1.
+    apply H.
+    apply A.
+    apply H.
 Qed.
 
 (* eof *)

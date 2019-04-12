@@ -159,7 +159,7 @@ Qed.
 
 (**)
 
-Theorem soundness_k_induction :
+Theorem soundness_k_induction' :
   forall (I : init) (T : trans) (P : prop) (k : nat),
   k_induction_post I T P k -> 
   forall (i : nat), prop_k_init_lf I T P i.
@@ -214,6 +214,17 @@ Proof.
         auto.
         auto.
         auto.
+Qed.
+
+Theorem soundness_k_induction :
+  forall (I : init) (T : trans) (P : prop) (k : nat),
+  k_induction_post I T P k -> 
+  forall (i : nat), prop_k_init I T P i.
+Proof.
+  intros * H.
+  apply safety_lf_path.
+  apply soundness_k_induction' with (k := k).
+  apply H.
 Qed.
 
 (* eof *)
