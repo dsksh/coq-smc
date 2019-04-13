@@ -6,17 +6,6 @@ Definition algorithm1_post (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
   (lasso I T P k \/ violate_loop_free I T P  k) /\ 
   safety_k I T P k.
 
-(*
-Tactic Notation "algorithm1_solve1" :=
- unfold algorithm1_post;
- unfold state, lasso, violate_loop_free, safety;
- unfold loop_free, P_state1;
- simpl;
- repeat tryif split then try split else
-     tryif right; intros; smt solve then apply by_smt
-     else  left; intros; smt solve; apply by_smt.
-*)
-
 (* *)
 
 Local Theorem case1 :

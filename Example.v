@@ -30,10 +30,10 @@ Definition ex2_P (s : state) : Prop :=
 (* ex3: nat sequence. *)
 
 Definition ex3_I (s : state) : Prop :=
-  s = 0%Z.
+  (s >= 0)%Z.
 
 Definition ex3_T (si sj : state) : Prop :=
-  sj = (si + 1)%Z.
+  (si > 3)%Z /\ sj = 0%Z \/ (si <= 3)%Z /\ sj = (si + 1)%Z.
 
 Definition ex3_P (s : state) : Prop :=
   (*~ (Z.eq s (-1)).*)
