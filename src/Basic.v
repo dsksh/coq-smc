@@ -1,4 +1,4 @@
-Require Export Core.
+Require Export Bmc.Core.
 
 
 Definition naive_post (I : init) (T : trans) (P : prop) (k : nat) : Prop :=

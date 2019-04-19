@@ -3,7 +3,9 @@
 ## Requirements
 
 - [Coq](https://coq.inria.fr) (checked with 8.6.1)
-- [coq2smt](https://github.com/wangjwchn/coq2smt) (checked with commit `604f72a`)
+- [coq2smt](https://github.com/wangjwchn/coq2smt) (checked with the commit `604f72a`)
+- [coq-plugin-utils](https://github.com/gmalecha/coq-plugin-utils) (required by coq2smt)
+- SMT solvers (e.g. CVC4 and Z3)
 
 ## Usage
 
@@ -17,29 +19,32 @@ $ make
 
 Invoke the IDE
 ```.sh
-$ coqide Basic_example.v
+$ coqide src/Basic_example.v
 ```
 and play with an interactive proof.
 
-## File Structure
+## Modules
 
-The following diagram represents the dependencies among the vernacular files and their contents.
+The following diagram represents the contents of the modules and the dependencies among them.
 
 ```
 .
-+-- Logic.v: Some auxiliary lemmas.
++-- Logic: Some auxiliary lemmas.
     |
-    +-- Core.v: Definitions of transition systems etc.;
-        |       a thery of state sequences and paths.
+    +-- Core: Definitions of transition systems, etc.;
+        |       A thery of state sequences and paths.
         |
-        +-- Basic.v: Basic BMC methods.
-        |   +-- Basic_example.v
+        +-- Basic: Basic BMC methods.
+        |   +-- Basic_example
         |
-        +-- Sheeran1.v: Sheeran et al.'s first algorithm.
-        |   +-- Sheeran1_example.v
+        +-- Forward: Sheeran et al.'s forward method.
+        |   +-- Forward_example
+        |
+        +-- Backward: Sheeran et al.'s backward method.
+        |   +-- Backward_example
         |
         +-- KInduction.v: A k-induction method.
-            +-- KInduction_example.v
+            +-- KInduction_example
 ```            
 
 <!-- EOF -->

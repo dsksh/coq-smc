@@ -1,5 +1,5 @@
 Require Export ZArith.
-Require Export Logic.
+Require Export Bmc.Logic.
 
 Open Scope nat_scope.
 

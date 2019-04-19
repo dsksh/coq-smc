@@ -1,5 +1,5 @@
-Require Import Basic.
-Require Import Example.
+Require Import Bmc.Basic.
+Require Import Bmc.Example.
 Require Import SMTC.Tactic.
 Require Import SMTC.Integers.
 

@@ -37,12 +37,12 @@ vo_to_obj = $(addsuffix .o,\
 ##########################
 
 COQLIBS?=\
-  -R "." Top\
-  -I "."
+  -R "./src" Bmc\
+  -I "./src"
 COQCHKLIBS?=\
-  -R "." Top
+  -R "./src" Bmc 
 COQDOCLIBS?=\
-  -R "." Top
+  -R "./src" Bmc
 
 ##########################
 #                        #
@@ -85,14 +85,15 @@ endif
 ######################
 
 VFILES:=\
-  Logic.v\
-  Core.v\
-  Example.v\
-  Basic.v\
-  Sheeran1.v\
-  KInduction.v
+  src/Logic.v\
+  src/Core.v\
+  src/Example.v\
+  src/Basic.v\
+  src/Forward.v\
+  src/Backward.v\
+  src/KInduction.v
   #Basic_example.v\
-  #Sheeran1_example.v
+  #Forward_example.v
 
 ifneq ($(filter-out archclean clean cleanall printenv,$(MAKECMDGOALS)),)
 -include $(addsuffix .d,$(VFILES))
@@ -182,22 +183,22 @@ userinstall:
 
 install:
 	cd "." && for i in $(VOFILES) $(VFILES) $(GLOBFILES) $(NATIVEFILES) $(CMOFILES) $(CMIFILES) $(CMAFILES); do \
-	 install -d "`dirname "$(DSTROOT)"$(COQLIBINSTALL)/Top/$$i`"; \
-	 install -m 0644 $$i "$(DSTROOT)"$(COQLIBINSTALL)/Top/$$i; \
+	 install -d "`dirname "$(DSTROOT)"$(COQLIBINSTALL)/Bmc/$$i`"; \
+	 install -m 0644 $$i "$(DSTROOT)"$(COQLIBINSTALL)/Bmc/$$i; \
 	done
 
 install-doc:
-	install -d "$(DSTROOT)"$(COQDOCINSTALL)/Top/html
+	install -d "$(DSTROOT)"$(COQDOCINSTALL)/Bmc/html
 	for i in html/*; do \
-	 install -m 0644 $$i "$(DSTROOT)"$(COQDOCINSTALL)/Top/$$i;\
+	 install -m 0644 $$i "$(DSTROOT)"$(COQDOCINSTALL)/Bmc/$$i;\
 	done
 
 uninstall_me.sh: makefile
 	echo '#!/bin/sh' > $@
-	printf 'cd "$${DSTROOT}"$(COQLIBINSTALL)/Top && rm -f $(VOFILES) $(VFILES) $(GLOBFILES) $(NATIVEFILES) $(CMOFILES) $(CMIFILES) $(CMAFILES) && find . -type d -and -empty -delete\ncd "$${DSTROOT}"$(COQLIBINSTALL) && find "Top" -maxdepth 0 -and -empty -exec rmdir -p \{\} \;\n' >> "$@"
-	printf 'cd "$${DSTROOT}"$(COQDOCINSTALL)/Top \\\n' >> "$@"
+	printf 'cd "$${DSTROOT}"$(COQLIBINSTALL)/Bmc && rm -f $(VOFILES) $(VFILES) $(GLOBFILES) $(NATIVEFILES) $(CMOFILES) $(CMIFILES) $(CMAFILES) && find . -type d -and -empty -delete\ncd "$${DSTROOT}"$(COQLIBINSTALL) && find "Bmc" -maxdepth 0 -and -empty -exec rmdir -p \{\} \;\n' >> "$@"
+	printf 'cd "$${DSTROOT}"$(COQDOCINSTALL)/Bmc \\\n' >> "$@"
 	printf '&& rm -f $(shell find "html" -maxdepth 1 -and -type f -print)\n' >> "$@"
-	printf 'cd "$${DSTROOT}"$(COQDOCINSTALL) && find Top/html -maxdepth 0 -and -empty -exec rmdir -p \{\} \;\n' >> "$@"
+	printf 'cd "$${DSTROOT}"$(COQDOCINSTALL) && find Bmc/html -maxdepth 0 -and -empty -exec rmdir -p \{\} \;\n' >> "$@"
 	chmod +x $@
 
 uninstall: uninstall_me.sh

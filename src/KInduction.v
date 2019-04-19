@@ -1,4 +1,4 @@
-Require Export Core.
+Require Export Bmc.Core.
 Require Import Omega.
 
 
@@ -9,8 +9,7 @@ Definition k_violate_loop_free (I : init) (T : trans)
 
 
 Definition k_induction_post (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
-  (lasso I T P k \/ k_violate_loop_free I T P k) /\
-  safety_k I T P k.
+  k_violate_loop_free I T P k /\ safety_k I T P k.
 
 (**)
 
@@ -182,38 +181,32 @@ Proof.
     firstorder.
     tauto.
   - destruct H as [H H3].
-    destruct H.
-    + assert (i = k + (i - k)) as A0 by omega.
-      rewrite A0 in H0.
-      destruct H0 as [H0 H0'].
-      apply split_loop_free in H0'.
-      firstorder.
-    + unfold k_violate_loop_free in H.
-      destruct k.
-      * unfold loop_free in H.
-        simpl in *.
-        assert (forall ss, ~~ P ss.[0]) as A0 by firstorder.
-        apply univ_init_prop with (i:=i) (ss:=ss) in A0.
-        tauto.
-      * destruct H0 as [H0 H0'].
-        assert (i = (i - k - 1) + (k + 1)) as A0 by omega.
+    unfold k_violate_loop_free in H.
+    destruct k.
+    + unfold loop_free in H.
+      simpl in *.
+      assert (forall ss, ~~ P ss.[0]) as A0 by firstorder.
+      apply univ_init_prop with (i:=i) (ss:=ss) in A0.
+      tauto.
+    + destruct H0 as [H0 H0'].
+      assert (i = (i - k - 1) + (k + 1)) as A0 by omega.
 
-        assert (loop_free T ss 0 i) as A1 by auto.
-        rewrite A0 in A1; clear A0.
-        apply split_loop_free in A1.
-        destruct A1 as [A1 A1'].
-        assert (k < i) as A2 by omega.
-        apply shift_violate_loop_free with
-          (T:=T) (P:=P) (ss:=ss) in H2.
-        apply lt_wf_ind_incl_prop with
-          (I:=I) (T:=T) (P:=P) (ss:=ss) in A2.
-        apply A in H2.
-        auto.
-        rewrite Nat.add_1_r in A1'.
-        auto.
-        auto.
-        auto.
-        auto.
+      assert (loop_free T ss 0 i) as A1 by auto.
+      rewrite A0 in A1; clear A0.
+      apply split_loop_free in A1.
+      destruct A1 as [A1 A1'].
+      assert (k < i) as A2 by omega.
+      apply shift_violate_loop_free with
+        (T:=T) (P:=P) (ss:=ss) in H2.
+      apply lt_wf_ind_incl_prop with
+        (I:=I) (T:=T) (P:=P) (ss:=ss) in A2.
+      apply A in H2.
+      auto.
+      rewrite Nat.add_1_r in A1'.
+      auto.
+      auto.
+      auto.
+      auto.
 Qed.
 
 Theorem soundness_k_induction :

@@ -1,4 +1,4 @@
-Require Import Core.
+Require Import Bmc.Core.
 
 
 (* ex1: 3-bit register. *)
