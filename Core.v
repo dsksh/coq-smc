@@ -132,6 +132,28 @@ Proof.
   apply H.
 Qed.
 
+Lemma bounded_safety : 
+  forall (i k : nat) (I : init) (T : trans) (P : prop),
+  i <= k -> safety_k I T P k -> prop_k_init I T P i.
+Proof.
+  intros.
+  apply Nat.lt_eq_cases in H. 
+  destruct H.
+  - induction k.  
+    + easy.
+    + destruct (Nat.lt_ge_cases i k).
+      * assert (H2 : safety_k I T P k /\ prop_k_init I T P k).
+        destruct k; firstorder; now rewrite <- plus_n_O in H0.
+        apply IHk.
+        auto.
+        tauto.
+      * apply gt_S_le in H.
+        assert (H2 : i = k) by omega.
+        destruct k ;rewrite H2; firstorder.
+  - subst.
+    destruct k; firstorder.
+Qed.
+
 (**)
 
 Lemma skipn_path : forall (T : trans) (i j : nat),
@@ -234,29 +256,88 @@ Qed.
 
 (**)
 
-Lemma le_safety_relation : 
-  forall (i k : nat) (I : init) (T : trans) (P : prop),
-  i <= k -> safety_k I T P k -> prop_k_init I T P i.
+Lemma cons_path : forall (ss : sseq) (T : trans) (i j : nat),
+  T ss.[i] ss.[S i] /\ path T ss (S i) j <->
+  path T ss i (S j).
 Proof.
-  intros.
-  apply Nat.lt_eq_cases in H. 
-  destruct H.
-  - induction k.  
-    + easy.
-    + destruct (Nat.lt_ge_cases i k).
-      * assert (H2 : safety_k I T P k /\ prop_k_init I T P k).
-        destruct k; firstorder; now rewrite <- plus_n_O in H0.
-        apply IHk.
-        auto.
-        tauto.
-      * apply gt_S_le in H.
-        assert (H2 : i = k) by omega.
-        destruct k ;rewrite H2; firstorder.
-  - subst.
-    destruct k; firstorder.
+  destruct j.
+  - unfold path.
+    rewrite Nat.add_0_r.
+    rewrite Nat.add_1_r.
+    tauto.
+  - induction j. 
+    + simpl.
+      rewrite Nat.add_1_r.
+      do 2 rewrite Nat.add_succ_r.
+      rewrite Nat.add_0_r.
+      tauto.
+    + simpl.
+      split; firstorder;
+      now do 5 rewrite Nat.add_succ_r in *.
 Qed.
 
-(**)
+Lemma snoc_path : forall (ss : sseq) (T : trans) (i j: nat),
+  path T ss i (S j) <->
+  path T ss i j /\ T ss.[i+j] ss.[S (i+j)].
+Proof.
+  intros.
+  simpl.
+  replace (i + S j) with (S (i + j)).
+  tauto.
+  auto.
+Qed.
+
+Lemma skip1_path : forall (T : trans) (i j : nat),
+  forall ss : sseq,
+  path T ss (S i) j -> path T (skipn 1 ss) i j.
+Proof.
+  intros.
+  induction j.
+  - simpl. intuition.
+  - rewrite -> snoc_path in H.
+    destruct H.
+    rewrite -> snoc_path.
+    split.
+    * apply IHj.
+      apply H.
+    * do 2 rewrite skipn_nth.
+      replace (1+(i+j)) with (S i + j).
+      replace (1+S (i+j)) with (S (S i + j)).
+      apply H0.
+      auto. 
+      auto.
+Qed.
+
+Lemma shift_path : forall (ss : sseq) (T : trans) (i j : nat), 
+  path T ss 0 i /\ path T ss i (S j) <-> 
+  path T ss 0 (S i) /\ path T ss (S i) j .
+Proof.
+  intros.
+  rewrite snoc_path with (i:=0).
+  rewrite and_assoc.
+  rewrite cons_path.
+  reflexivity.
+Qed.
+
+Lemma split_path : forall (ss : sseq) (T : trans) (i j: nat),
+  path T ss 0 (i+j) <-> path T ss 0 i /\ path T ss i j.
+Proof.
+  induction i.
+  - simpl.
+    tauto.
+  - split.
+    + intros.
+      rewrite -> Nat.add_succ_comm in H.
+      apply IHi in H.
+      apply shift_path.
+      apply H.
+    + intros.
+      apply shift_path in H.
+      apply IHi in H.
+      rewrite <- Nat.add_succ_comm in H.
+      apply H.
+Qed.
+
 
 Lemma split_no_loop' : forall (ss:sseq) (o i k j:nat),
   no_loop' ss o i (j+k) -> no_loop' ss o i j.
@@ -357,88 +438,6 @@ Proof.
   split.
   - now apply split_no_loop_former in H.
   - now apply split_no_loop_latter in H.
-Qed.
-
-Lemma cons_path : forall (ss : sseq) (T : trans) (i j : nat),
-  T ss.[i] ss.[S i] /\ path T ss (S i) j <->
-  path T ss i (S j).
-Proof.
-  destruct j.
-  - unfold path.
-    rewrite Nat.add_0_r.
-    rewrite Nat.add_1_r.
-    tauto.
-  - induction j. 
-    + simpl.
-      rewrite Nat.add_1_r.
-      do 2 rewrite Nat.add_succ_r.
-      rewrite Nat.add_0_r.
-      tauto.
-    + simpl.
-      split; firstorder;
-      now do 5 rewrite Nat.add_succ_r in *.
-Qed.
-
-Lemma snoc_path : forall (ss : sseq) (T : trans) (i j: nat),
-  path T ss i (S j) <->
-  path T ss i j /\ T ss.[i+j] ss.[S (i+j)].
-Proof.
-  intros.
-  simpl.
-  replace (i + S j) with (S (i + j)).
-  tauto.
-  auto.
-Qed.
-
-Lemma skip1_path : forall (T : trans) (i j : nat),
-  forall ss : sseq,
-  path T ss (S i) j -> path T (skipn 1 ss) i j.
-Proof.
-  intros.
-  induction j.
-  - simpl. intuition.
-  - rewrite -> snoc_path in H.
-    destruct H.
-    rewrite -> snoc_path.
-    split.
-    * apply IHj.
-      apply H.
-    * do 2 rewrite skipn_nth.
-      replace (1+(i+j)) with (S i + j).
-      replace (1+S (i+j)) with (S (S i + j)).
-      apply H0.
-      auto. 
-      auto.
-Qed.
-
-Lemma shift_path : forall (ss : sseq) (T : trans) (i j : nat), 
-  path T ss 0 i /\ path T ss i (S j) <-> 
-  path T ss 0 (S i) /\ path T ss (S i) j .
-Proof.
-  intros.
-  rewrite snoc_path with (i:=0).
-  rewrite and_assoc.
-  rewrite cons_path.
-  reflexivity.
-Qed.
-
-Lemma split_path : forall (ss : sseq) (T : trans) (i j: nat),
-  path T ss 0 (i+j) <-> path T ss 0 i /\ path T ss i j.
-Proof.
-  induction i.
-  - simpl.
-    tauto.
-  - split.
-    + intros.
-      rewrite -> Nat.add_succ_comm in H.
-      apply IHi in H.
-      apply shift_path.
-      apply H.
-    + intros.
-      apply shift_path in H.
-      apply IHi in H.
-      rewrite <- Nat.add_succ_comm in H.
-      apply H.
 Qed.
 
 Lemma split_loop_free : forall  (ss : sseq) (T : trans) (i j : nat),

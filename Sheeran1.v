@@ -16,7 +16,7 @@ Proof.
   intros * H * H0 *.
   unfold algorithm1_post in H.
   destruct H as [H H'].
-  apply (le_safety_relation I T P) in H0.
+  apply (bounded_safety I T P) in H0.
   firstorder.
   auto.
 Qed.
