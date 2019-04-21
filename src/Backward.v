@@ -3,7 +3,7 @@ Require Import Omega.
 
 
 Definition backward_post (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
-  violate_loop_free I T P  k /\ safety_k I T P k.
+  lasso_bwd I T P  k /\ safety_k I T P k.
 
 (* *)
 
@@ -42,10 +42,10 @@ Qed.
 
 Local Lemma case2_2 : forall (I : init) (T : trans) (P : prop) (i k : nat),
   i > k -> 
-  violate_loop_free I T P k -> 
+  lasso_bwd I T P k -> 
   prop_k_init_lf I T P i.
 Proof.
-  unfold violate_loop_free, prop_k_init_lf.
+  unfold lasso_bwd, prop_k_init_lf.
   intros * H H0 *.
   apply neg_false.
   split.

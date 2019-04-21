@@ -46,5 +46,3 @@ The following diagram represents the contents of the modules and the dependencie
         +-- KInduction.v: A k-induction method.
             +-- KInduction_example
 ```            
-
-<!-- EOF -->

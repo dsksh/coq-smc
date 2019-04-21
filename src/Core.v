@@ -76,11 +76,11 @@ Fixpoint no_loop (ss : sseq) (o k : nat) : Prop :=
 Definition loop_free (T : trans) (ss : sseq) (o k: nat) : Prop :=
   path T ss o k /\ no_loop ss o k.
 
-Definition lasso (I : init) (T : trans) (P : prop) (k : nat) : Prop :=
+Definition lasso_fwd (I : init) (T : trans) (P : prop) (k : nat) : Prop :=
   forall ss : sseq,
   ~ (I ss.[0] /\ loop_free T ss 0 k).
 
-Definition violate_loop_free (I : init) (T : trans)
+Definition lasso_bwd (I : init) (T : trans)
            (P : prop) (k: nat) : Prop :=
   forall ss : sseq,
   ~ (loop_free T ss 0 k /\ ~ P ss.[k ]).

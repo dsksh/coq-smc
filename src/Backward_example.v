@@ -13,7 +13,7 @@ Goal backward_post ex1_I ex1_T ex1_P 1.
 Proof.
   unfold ex1_I, ex1_T, ex1_P.
   unfold backward_post.
-  unfold violate_loop_free.
+  unfold lasso_bwd.
   unfold safety_k.
   unfold prop_k_init.
   unfold loop_free.
@@ -40,7 +40,7 @@ Qed.
 Goal backward_post ex2_I ex2_T ex2_P 3.
 Proof.
   unfold ex2_I, ex2_T, ex2_P.
-  unfold backward_post, violate_loop_free, safety_k, prop_k_init, loop_free, path, no_loop, no_loop', sseq, nth, state.
+  unfold backward_post, lasso_bwd, safety_k, prop_k_init, loop_free, path, no_loop, no_loop', sseq, nth, state.
   repeat rewrite -> Nat.add_0_l;
   repeat rewrite -> Nat.add_0_r.
   split.
@@ -51,7 +51,7 @@ Qed.
 Goal backward_post ex3_I ex3_T ex3_P 10.
 Proof.
   unfold ex3_I, ex3_T, ex3_P.
-  unfold backward_post, violate_loop_free, violate_loop_free, safety_k, prop_k_init, loop_free, path, no_loop, no_loop', sseq, nth, state.
+  unfold backward_post, lasso_bwd, safety_k, prop_k_init, loop_free, path, no_loop, no_loop', sseq, nth, state.
   repeat rewrite -> Nat.add_0_l;
   repeat rewrite -> Nat.add_0_r.
   split.
