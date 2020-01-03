@@ -2,13 +2,13 @@ Require Export Bmc.Core.
 Require Import Omega.
 
 
-Definition k_ind_step (I : init) (T : trans)
+Definition k_ind_step (T : trans)
   (P : prop) (k: nat) : Prop :=
   forall ss : sseq,
   ~ (loop_free T ss 0 k /\ safety_k_offset P ss 0 k /\ ~ P ss.[k]).
 
 Definition k_induction_post (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
-  k_ind_step I T P k /\ safety_k I T P k.
+  k_ind_step T P k /\ safety_k I T P k.
 
 (**)
 
@@ -149,10 +149,8 @@ Proof.
     apply split_loop_free in A1.
     destruct A1 as [A1 A1'].
     assert (k < i) as A2 by omega.
-    apply shift_k_ind_step with
-      (T:=T) (P:=P) (ss:=ss) in H2.
-    apply lt_wf_ind_incl_prop with
-      (I:=I) (T:=T) (P:=P) (ss:=ss) in A2.
+    apply shift_k_ind_step with (T:=T) (P:=P) (ss:=ss) in H2.
+    apply lt_wf_ind_incl_prop with (I:=I) (T:=T) (P:=P) (ss:=ss) in A2.
     apply and_imply_not_and3 in H2.
     apply H2.
     auto.

@@ -3,7 +3,7 @@ Require Import Omega.
 
 
 Definition forward_post (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
-  lasso_fwd I T P k /\ safety_k I T P k.
+  lasso_fwd I T k /\ safety_k I T P k.
 
 (* *)
 
@@ -22,7 +22,7 @@ Qed.
 
 Local Lemma case2_1 :
   forall (I : init) (T : trans) (P : prop) (i k : nat),
-  i > k -> lasso_fwd I T P k -> prop_k_init_lf I T P i.
+  i > k -> lasso_fwd I T k -> prop_k_init_lf I T P i.
 Proof.
   unfold lasso_fwd, prop_k_init_lf in *.
   intros * H H0 *.
@@ -46,7 +46,9 @@ Proof.
   intros * H * H0.
   unfold forward_post in H.
   destruct H as [H H1].
-  now apply case2_1 with (k := k).
+  apply case2_1 with (k := k).
+  apply H0.
+  apply H.
 Qed.
 
 (**)
