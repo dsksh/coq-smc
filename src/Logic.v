@@ -28,6 +28,13 @@ Proof.
   intros. tauto.
 Qed.
 
+Lemma not_or_and3 :
+  forall (p1 p2 p3:Prop), 
+  ~(p1 \/ p2 \/ p3) <-> (~p1 /\ ~p2 /\ ~p3).
+Proof.
+  intros. tauto.
+Qed.
+
 Lemma and_imply_premise :
   forall (p1 p2 p3:Prop),
   (p1 /\ p2 -> p3) <-> (p1 -> p2 -> p3).

@@ -52,6 +52,18 @@ Proof.
       firstorder.
 Qed.
 
+Theorem completeness_naive' :
+  forall (I : init) (T : trans) (P : prop) (k : nat),
+  ~naive_post I T P k ->
+  ~( forall (i:nat) (ss:sseq), 
+    ~(I ss.[0] /\ path T ss 0 i /\ ~P ss.[i]) ).
+Proof.
+  intros * H.
+  contradict H.
+  apply completeness_naive.
+  apply H.
+Qed.
+
 Theorem soundness_induction :
   forall (I:init) (T:trans) (P:prop),
   induction_post I T P ->
