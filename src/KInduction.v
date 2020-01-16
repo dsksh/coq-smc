@@ -5,7 +5,7 @@ Require Import Omega.
 Definition k_ind_step (T : trans)
   (P : prop) (k: nat) : Prop :=
   forall ss : sseq,
-  ~ (loop_free T ss 0 k /\ safety_k_offset P ss 0 k /\ ~ P ss.[k]).
+  loop_free T ss 0 k -> safety_k_offset P ss 0 k -> P ss.[k].
 
 Definition k_induction_post (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
   k_ind_step T P k /\ safety_k I T P k.
@@ -33,6 +33,7 @@ Proof.
       destruct i; firstorder.
 Qed.
 
+(*
 Lemma shift_k_ind_step : 
   forall (T : trans) (P : prop) (i k : nat),
   k < i ->
@@ -64,6 +65,29 @@ Proof.
     contradiction.
     omega.
   - tauto.
+Qed.
+*)
+
+Lemma shift_k_ind_step : 
+  forall (T : trans) (P : prop) (i k : nat),
+  k < i ->
+  ( forall ss : sseq,
+     loop_free T ss 0 k -> safety_k_offset P ss 0 k -> P ss.[k] ) ->
+  forall ss : sseq,
+  loop_free T ss (i-k) k -> safety_k_offset P ss (i-k) k -> P ss.[i].
+Proof.
+  intros.
+  unfold loop_free in H1.
+  destruct H1 as [H1 H3].
+  apply skipn_path in H1.
+  apply skipn_no_loop in H3.
+  apply skipn_safety_k_offset in H2.
+  assert (i-k+k=i) as A by omega.
+  rewrite <- A.
+  rewrite <- skipn_nth.
+  apply H0.
+  firstorder.
+  apply H2.
 Qed.
 
 Lemma cons_safety_k_offset : forall (P : prop) (ss : sseq) (i j : nat),
@@ -125,8 +149,8 @@ Theorem soundness_k_induction' :
 Proof.
   unfold prop_k_init_lf.
   intros * H *.
-  apply and_imply_not_and3.
-  intros.
+  (*apply and_imply_not_and3.*)
+  intros H0 H0'.
 
   induction i as [* H1] using lt_wf_ind.
   unfold k_induction_post in H.
@@ -134,15 +158,18 @@ Proof.
   destruct (Nat.le_gt_cases i k) as [H2|H2].
   - apply bounded_safety with (I:=I) (T:=T) (P:=P) in H2.
     unfold prop_k_init in H2.
-    assert (~ (I ss.[0] /\ path T ss 0 i /\ ~ P ss.[i])) as A0 by apply H2.
+    (*assert (~ (I ss.[0] /\ path T ss 0 i /\ ~ P ss.[i])) as A0 by apply H2.
     clear H2.
     apply <- and_imply_not_and3 in A0.
-    apply A0.
+    apply A0.*)
+    apply H2.
+    apply H0.
+    simpl.
     firstorder.
     tauto.
   - destruct H as [H H3].
     unfold k_ind_step in H.
-    destruct H0 as [H0 H0'].
+    (*destruct H0 as [H0 H0'].*)
     assert (i = (i - k) + k) as A0 by omega.
     assert (loop_free T ss 0 i) as A1 by auto.
     rewrite A0 in A1; clear A0.
@@ -150,14 +177,19 @@ Proof.
     destruct A1 as [A1 A1'].
     assert (k < i) as A2 by omega.
     apply shift_k_ind_step with (T:=T) (P:=P) (ss:=ss) in H2.
-    apply lt_wf_ind_incl_prop with (I:=I) (T:=T) (P:=P) (ss:=ss) in A2.
-    apply and_imply_not_and3 in H2.
     apply H2.
+    apply H.
+    apply A1'.
+    apply lt_wf_ind_incl_prop with (I:=I) (T:=T) (P:=P) (ss:=ss) in A2.
+    apply A2.
     auto.
-    auto.
-    auto.
-    auto.
+    intros.
+    apply H1.
+    apply H4.
+    apply H5.
 Qed.
+
+Require Export Bmc.LoopFree.
 
 Theorem soundness_k_induction :
   forall (I : init) (T : trans) (P : prop) (k : nat),

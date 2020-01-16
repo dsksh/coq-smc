@@ -25,17 +25,11 @@ Local Lemma case2_1 :
   i > k -> lasso_fwd I T k -> prop_k_init_lf I T P i.
 Proof.
   unfold lasso_fwd, prop_k_init_lf in *.
-  intros * H H0 *.
-  apply neg_false.
-  split.
-  - intros H1.
-    destruct H1 as [H1 H2].
-    destruct H2 as [H2 H3].
-    assert (A : i = k + (i - k)) by omega.
-    rewrite A in H2.
-    apply split_loop_free in H2.
-    firstorder.
-  - firstorder.
+  intros * H H0 * H1 H2.
+  assert (A : i = k + (i - k)) by omega.
+  rewrite -> A in H2.
+  apply split_loop_free in H2.
+  firstorder.
 Qed.
 
 Local Lemma case2 :
@@ -65,6 +59,8 @@ Proof.
   - revert H0.
     now apply case2.
 Qed.
+
+Require Export Bmc.LoopFree.
 
 Theorem soundness_forward :
   forall (I : init) (T : trans) (P : prop) (k : nat),

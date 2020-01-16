@@ -87,13 +87,13 @@ endif
 VFILES:=\
   src/Logic.v\
   src/Core.v\
+  src/LoopFree.v\
   src/Example.v\
   src/Basic.v\
   src/Forward.v\
   src/Backward.v\
-  src/KInduction.v
-  #Basic_example.v\
-  #Forward_example.v
+  src/KInduction.v\
+  src/PDR.v
 
 ifneq ($(filter-out archclean clean cleanall printenv,$(MAKECMDGOALS)),)
 -include $(addsuffix .d,$(VFILES))
