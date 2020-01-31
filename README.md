@@ -1,4 +1,4 @@
-# A SAT-based Model Checking Methods in Coq
+# A SAT-based Model Checking in Coq
 
 Specification of SMT-based model checking methods in Coq.
 We aim to verify the correctness of the methods.
@@ -34,7 +34,7 @@ The following diagram represents the contents of the modules and the dependencie
 ```
 .
 +-- Logic: Some auxiliary lemmas.
-+-- LoopFree: Lemmas for relating loop and loop-free paths.
++-- LoopFree: Lemmas for relating looped and loop-free paths.
     |
     +-- Core: Definitions of transition systems, etc.;
         |       A thery of state sequences and paths.

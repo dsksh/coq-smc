@@ -20,28 +20,6 @@ Proof.
   auto.
 Qed.
 
-(*
-Local Lemma case2_2' : forall (T : trans) (P : prop) (i k : nat),
-  i > k -> 
-  ( forall ss : sseq, ~ (loop_free T ss 0 k /\ ~ P ss.[k]) ) -> 
-    forall ss : sseq, ~ (loop_free T ss (i-k) k /\ ~ P ss.[i]).
-Proof.
-  intros * H H0 *.
-  apply neg_false.
-  split.
-  - unfold loop_free in *.
-    intros H1.
-    destruct H1 as [H1 H3].
-    destruct H1 as [H1 H2].
-    apply skipn_no_loop in H2.
-    apply skipn_prop with (k:= k) in H3.
-    apply skipn_path in H1.
-    firstorder.
-    omega.
-  - tauto.
-Qed.
-*)
-
 Local Lemma case2_2' : forall (T : trans) (P : prop) (i k : nat),
   i > k -> 
   ( forall ss : sseq, (loop_free T ss 0 k -> P ss.[k]) ) -> 
@@ -55,7 +33,10 @@ Proof.
   assert (i-k+k = i) by omega.
   rewrite <- H3.
   rewrite <- skipn_nth.
-  firstorder.
+  apply H0.
+  split.
+  apply H1.
+  apply H2.
 Qed.
 
 Local Lemma case2_2 : forall (I : prop) (T : trans) (P : prop) (i k : nat),

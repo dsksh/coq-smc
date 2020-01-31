@@ -29,7 +29,10 @@ Proof.
   assert (A : i = k + (i - k)) by omega.
   rewrite -> A in H2.
   apply split_loop_free in H2.
-  firstorder.
+  destruct H2.
+  contradict H2.
+  apply H0.
+  apply H1.
 Qed.
 
 Local Lemma case2 :
