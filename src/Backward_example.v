@@ -9,7 +9,7 @@ Set SMT Debug.
 Axiom by_smt : forall P : Prop, P.
 
 
-Definition backward_post (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
+Definition backward_post (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
   lasso_bwd_ni T P  k /\ safety_k_ni I T P k.
 
 

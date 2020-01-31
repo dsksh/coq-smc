@@ -9,7 +9,7 @@ Definition k_ind_step_ni (T : trans)
   forall ss : sseq,
   ~(loop_free T ss 0 k /\ safety_k_offset P ss 0 k /\ ~P ss.[k]).
 
-Definition k_induction_post_ni (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
+Definition k_induction_post_ni (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
   k_ind_step_ni T P k /\ safety_k_ni I T P k.
 
 

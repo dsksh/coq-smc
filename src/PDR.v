@@ -3,46 +3,18 @@ Require Import Omega.
 
 Open Scope nat_scope.
 
-Definition sprop : Type := state -> Prop.
-Definition spseq : Type := nat -> state -> Prop.
+Definition spseq : Type := nat -> prop.
 
 
-Definition pdr_post_t (I:init) (T:trans) (P:prop) (r:spseq) (k:nat) : Prop :=
-  (*(forall s, I s <-> r 0 s) /\*)
+Definition pdr_post_t (I:prop) (T:trans) (P:prop) (r:spseq) (k:nat) : Prop :=
   (forall i s, I s -> r i s) /\
   (forall i s, r i s -> P s) /\
-  (forall i s, r i s -> r (i+1) s) /\
-  (forall i s s', i <= k+1 -> r i s /\ T s s' -> r (i+1) s') /\
-  (forall s, r k s <-> r (k+1) s).
-
-Lemma pdr_bounded :
-  forall (I:init) (T:trans) (P:prop),
-  forall r:spseq,
-  forall k,
-  pdr_post_t I T P r k ->
-  forall i, i <= k+1 -> prop_k_init I T P i.
-Proof.
-  unfold pdr_post_t, prop_k_init.
-  intros * PC' * H.
-  do 4 destruct PC' as [?PC PC'].
-  intros * I0 T0.
-  apply PC0 with (i:=i).
-  induction i.
-  - apply PC. apply I0.
-  - rewrite <- Nat.add_1_r in T0.
-    apply split_path in T0. destruct T0 as [T0 T1].
-    unfold path in T1. destruct T1 as [_ T1].
-    assert (i <= k+1) as H0 by omega.
-    assert (r i ss.[i]) as H1 by auto.
-    rewrite <- Nat.add_1_r.
-    apply PC2 with (s:=ss.[i+0]) (s':=ss.[i+1]). omega.
-    split.
-    + rewrite -> Nat.add_0_r. apply H1.
-    + apply T1.
-Qed.
+  (forall i s, r i s -> r (S i) s) /\
+  (forall i s s', i <= k -> r i s /\ T s s' -> r (S i) s') /\
+  (forall s, r k s <-> r (S k) s).
 
 Lemma pdr_bounded_r :
-  forall (I:init) (T:trans) (P:prop),
+  forall (I:prop) (T:trans) (P:prop),
   forall r:spseq,
   forall k,
   pdr_post_t I T P r k ->
@@ -56,20 +28,39 @@ Proof.
   - rewrite <- Nat.add_1_r in T0.
     apply split_path in T0. destruct T0 as [T0 T1].
     unfold path in T1. destruct T1 as [_ T1].
+    rewrite -> Nat.add_0_r in T1.
+    rewrite -> Nat.add_1_r in T1.
     assert (r i ss.[i]) as H1 by firstorder.
-    rewrite <- Nat.add_1_r.
-    apply PC2 with (s:=ss.[i]) (s':=ss.[i+1]). omega.
+    apply PC2 with (s:=ss.[i]) (s':=ss.[S i]). omega.
     split.
     + apply H1.
-    + rewrite -> Nat.add_0_r in T1. apply T1.
+    + apply T1.
+Qed.
+
+Lemma pdr_bounded :
+  forall (I:prop) (T:trans) (P:prop),
+  forall r:spseq,
+  forall k,
+  pdr_post_t I T P r k ->
+  forall i, i <= k+1 -> prop_k_init I T P i.
+Proof.
+  unfold pdr_post_t, prop_k_init.
+  intros * PC' * H * I0 T0.
+  do 4 destruct PC' as [?PC PC'].
+  apply PC0 with (i:=i).
+  revert I0 T0. revert ss.
+  fold (prop_k_init I T (r i) i).
+  apply pdr_bounded_r with (P:=P) (k:=k).
+  firstorder.
+  apply H.
 Qed.
 
 Lemma pdr_unbounded :
-  forall (I:init) (T:trans) (P:prop),
+  forall (I:prop) (T:trans) (P:prop),
   forall r:spseq,
   forall i k,
   pdr_post_t I T P r k ->
-  i > k+1 -> prop_k_init I T P i.
+  i > S k -> prop_k_init I T P i.
 Proof.
   intros * PC' H.
   assert (pdr_post_t I T P r k) as PC'' by auto.
@@ -77,7 +68,7 @@ Proof.
   do 4 destruct PC'' as [?PC PC''].
   unfold prop_k_init.
   intros * I0 T0.
-  apply PC0 with (i:=k+1).
+  apply PC0 with (i:=S k).
   clear PC PC0 PC1 PC2 PC''.
 
   revert T0; revert I0; revert ss.
@@ -87,62 +78,42 @@ Proof.
     unfold pdr_post_t in PC'; 
     do 4 destruct PC' as [?PC PC'] in PC'.
   - contradict H. omega.
-  - destruct (Nat.le_gt_cases i k) as [H1|H1];
-      rewrite <- Nat.add_1_r in T0;
-      apply split_path in T0; destruct T0 as [T0 T1];
-      apply skipn_path in T1.
-    + assert (i=k) as H2. omega.
-      replace (S i) with (i+1) by omega.
-      rewrite <- skipn_nth.
-      rewrite -> H2.
-      apply PC2 with (i:=k) (s:=(skipn k ss).[0]) (s':=(skipn k ss).[1]). omega.
-      split.
-      { rewrite -> skipn_nth.
-        rewrite -> Nat.add_0_r.
-        revert T0; revert I0.
-        clear T1 IHi. revert ss.
+  - rewrite <- Nat.add_1_r in T0.
+    apply split_path in T0; destruct T0 as [T0 T1].
+    apply skipn_path in T1.
+    replace (S i) with (i+1) by omega.
+    rewrite <- skipn_nth.
+    apply PC2 with (i:=k) (s:=(skipn i ss).[0]) (s':=(skipn i ss).[1]).
+    auto.
+
+    split.
+    + rewrite -> skipn_nth.
+      apply PC'.
+      rewrite <- Nat.add_1_r.
+      rewrite -> Nat.add_0_r.
+      clear T1.
+      destruct (Nat.le_gt_cases i (k+1)) as [H0|H0].
+      { assert (i=k+1) as H2. omega.
+        revert T0; revert I0; revert ss.
         rewrite -> H2.
-        fold (prop_k_init I T (r k) k).
+        fold (prop_k_init I T (r (k+1)) (k+1)).
+        rewrite -> Nat.add_1_r.
         apply pdr_bounded_r with (P:=P) (r:=r) (k:=k).
         { firstorder. }
         { omega. } }
-      { rewrite <- H2. apply T1. }
-    + destruct (Nat.le_gt_cases i (k+1)) as [H0|H0].
-      { assert (i=k+1) as H2. omega.
-        replace (S i) with (i+1) by omega.
-        rewrite <- skipn_nth.
-        rewrite -> H2.
-        apply PC2 with (i:=k) (s:=(skipn (k+1) ss).[0]) (s':=(skipn (k+1) ss).[1]). omega.
-        split.
-        { rewrite -> skipn_nth.
-          apply PC'.
-          rewrite -> Nat.add_0_r.
-          revert T0; revert I0.
-          clear T1 IHi; revert ss.
-          rewrite -> H2.
-          fold (prop_k_init I T (r (k+1)) (k+1)).
-          apply pdr_bounded_r with (P:=P) (r:=r) (k:=k).
-          { firstorder. }
-          { omega. } }
-        { rewrite <- H2. apply T1. } }
-      { assert (pdr_post_t I T P r k) as H2 by firstorder.
+      { intros.
+        assert (pdr_post_t I T P r k) as H2 by firstorder.
         apply IHi with (ss:=ss) in H2.
-        replace (S i) with (i+1) by omega.
-        rewrite <- skipn_nth.
-        apply PC2 with (i:=k) (s:=(skipn i ss).[0]) (s':=(skipn i ss).[1]). omega.
-        split.
-        { rewrite -> skipn_nth.
-          assert (r (k+1) ss.[i]).
-          apply H2. apply PC'. 
-          replace (i+0) with i by auto. apply H2. }
-        { apply T1. }
-        apply H0.
+        rewrite -> Nat.add_1_r.
+        apply H2.
+        omega.
         apply I0.
         apply T0. }
+  + apply T1.
 Qed.
 
 Theorem pdr_soundness_t :
-  forall (I:init) (T:trans) (P:prop) (k:nat),
+  forall (I:prop) (T:trans) (P:prop) (k:nat),
   forall r:spseq,
   pdr_post_t I T P r k ->
   forall i, prop_k_init I T P i.
@@ -152,141 +123,38 @@ Proof.
   - apply pdr_bounded with (r:=r) (k:=k).
     apply H. apply H0.
   - apply pdr_unbounded with (r:=r) (k:=k).
-    apply H. apply H0.
+    apply H.
+    rewrite <- Nat.add_1_r. apply H0.
 Qed.
 
-(**)
-
-(*
-Definition pdr_post_f' (I:init) (T:trans) (P:prop) (f1:sprop) : Prop :=
-  (exists ss, I ss.[0] /\ ~P ss.[0]) \/
-  (exists ss, I ss.[0] /\ T ss.[0] ss.[1] /\ ~P ss.[1]) \/
-  (exists ss, (f1 ss.[1] /\ T ss.[1] ss.[2] /\ ~P ss.[2]) /\
-    I ss.[0] /\ T ss.[0] ss.[1] /\ ss.[0] <> ss.[1]).
-
-Theorem pdr_soundness_f' :
-  forall (I:init) (T:trans) (P:prop),
-  forall r1:sprop,
-  ( forall (i:nat) (ss:sseq), 
-    ~(I ss.[0] /\ path T ss 0 i /\ ~P ss.[i]) ) ->
-      ~(pdr_post_f' I T P r1).
+Theorem pdr_soundness_t1 :
+  forall (I:prop) (T:trans) (P:prop),
+  ( exists (k:nat) (r:spseq), pdr_post_t I T P r k ) ->
+  forall i, prop_k_init I T P i.
 Proof.
-  intros * H.
-  unfold pdr_post_f'.
-  rewrite -> not_or_and3.
-  assert (forall p q r, ((p /\ p) /\ (q /\ r)) -> (p /\ q /\ r)) as A by tauto.
-  apply A; clear A.
-  split; split;
-  unfold not at 1;
-  intros H0;
-  destruct H0 as [ss];
-  assert (~(I ss.[0] /\ path T ss 0 0 /\ ~P ss.[0])) as H1 by apply H;
-  contradict H1.
-  - firstorder.
-  - firstorder.
-  - assert (~(I ss.[0] /\ path T ss 0 1 /\ ~P ss.[1])) as H2 by apply H.
-    contradict H2.
-    firstorder.
-  - assert (~(I ss.[0] /\ path T ss 0 2 /\ ~P ss.[2])) as H2 by apply H.
-    contradict H2.
-    firstorder.
+  intros * H *.
+  destruct H as [k]; destruct H as [r].
+  apply pdr_soundness_t with (k:=k) (r:=r).
+  apply H.
 Qed.
-*)
 
 (**)
 
-Fixpoint spseq_sseq (I:init) (T:trans) (r:spseq) (ss:sseq) (i:nat) :=
+Fixpoint spseq_sseq (I:prop) (T:trans) (r:spseq) (ss:sseq) (i:nat) :=
   match i with
   | O => I ss.[0]
-  | S i => spseq_sseq I T r ss i /\ r i ss.[i] /\ T ss.[i] ss.[i+1]
+  | S j => spseq_sseq I T r ss j /\ r j ss.[j] /\ T ss.[j] ss.[i]
   end.
-
-(*
-Lemma spseq_sseq_path :
-  forall (I:init) (T:trans) (P:prop),
-  forall r:spseq,
-  forall ss: sseq,
-  forall i, spseq_sseq I T r ss i -> I ss.[0] /\ path T ss 0 i.
-Proof.
-  induction i.
-  - firstorder.
-  - unfold spseq_sseq; fold spseq_sseq.
-    unfold path; fold path.
-    split.
-    + apply IHi; apply H.
-    + split.
-      { apply IHi; apply H. }
-      { do 2 rewrite -> Nat.add_0_l.
-        rewrite <- Nat.add_1_r.
-        apply H. }
-Qed.
-*)
-
-(*
-Definition pdr_post_f (I:init) (T:trans) (P:prop) (r:spseq) : Prop :=
-  (exists ss, I ss.[0] /\ ~P ss.[0]) \/
-  (exists ss, I ss.[0] /\ T ss.[0] ss.[1] /\ ~P ss.[1]) \/
-  ( (*(forall s, I s <-> r 0 s) /\
-    (forall i s, I s -> r i s) /\
-    (forall i s, r i s -> P s) /\
-    (forall i s, r i s -> r (i+1) s) /\*)
-    (exists (i:nat) ss,
-      r i ss.[i] /\ T ss.[i] ss.[i+1] /\ ~P ss.[i+1] /\
-      spseq_sseq I T r ss i) ).
-
-Theorem pdr_soundness_f :
-  forall (I:init) (T:trans) (P:prop),
-  forall r:spseq,
-  pdr_post_f I T P r ->
-    ~(forall (i:nat) (ss:sseq), 
-      ~(I ss.[0] /\ path T ss 0 i /\ ~P ss.[i])).
-Proof.
-  intros * H.
-  contradict H.
-  unfold pdr_post_f.
-  rewrite -> not_or_and3.
-  assert (forall p q r, ((p /\ q) /\ r) -> (p /\ q /\ r)) as A by tauto.
-  apply A; clear A.
-  split.
-  - split;
-    unfold not at 1;
-    intros H0;
-    destruct H0 as [ss];
-    assert (~(I ss.[0] /\ path T ss 0 0 /\ ~P ss.[0])) as H1 by apply H;
-    contradict H1.
-    + firstorder.
-    + firstorder.
-
-  - unfold not at 1.
-    intros.
-    (*do 1 destruct H0 as [?H H0].*)
-    destruct H0 as [i].
-    destruct H0 as [ss].
-
-    assert (~(I ss.[0] /\ path T ss 0 (i+1) /\ ~P ss.[i+1])) by apply H.
-    contradict H1.
-
-    do 3 destruct H0 as [?H H0].
-    assert (spseq_sseq I T r ss i) by apply H0.
-    apply spseq_sseq_path in H4.
-    rewrite -> Nat.add_1_r at 1.
-    unfold path; fold path.
-    do 2 rewrite -> Nat.add_0_l.
-    rewrite <- Nat.add_1_r at 1.
-    firstorder.
-    auto.
-Qed.
-*)
 
 (**)
 
 Lemma spseq_sseq_path' :
-  forall (I:init) (T:trans) (P:prop),
+  forall (I:prop) (T:trans) (P:prop),
   forall r:spseq,
   forall ss: sseq,
   (*(forall s, I s <-> r 0 s) ->*)
   forall k, spseq_sseq I T r ss k -> 
-    I ss.[0] /\ forall i, i < k -> path T ss 0 (i+1) /\ r i ss.[i].
+    I ss.[0] /\ forall i, i < k -> path T ss 0 (S i) /\ r i ss.[i].
 Proof.
   induction k.
   - unfold spseq_sseq.
@@ -307,11 +175,11 @@ Proof.
         rewrite -> H4.
         rewrite -> Nat.add_0_l.
         unfold path.
-        do 2 rewrite -> Nat.add_0_l.
+        rewrite -> Nat.add_0_l.
         assert (k = 0) by omega.
         rewrite -> H5 in H1.
         rewrite -> H5 in H.
-        rewrite -> Nat.add_0_l in H.
+        (*rewrite -> Nat.add_0_l in H.*)
         firstorder. }
       { intros.
         destruct i.
@@ -324,12 +192,12 @@ Proof.
             omega. }
           { assert (k = S i) by omega. 
             apply IHk with (i:=i) in H0.
-            assert (S i+1=S (i+1)) by omega.
-            rewrite -> H6.
+            (*assert (S i+1=S (S i)) by omega.
+            rewrite -> H6.*)
             unfold path; fold path.
             do 2 rewrite -> Nat.add_0_l.
-            rewrite <- H6.
-            rewrite -> Nat.add_1_r at 2.
+            (*rewrite <- H6.*)
+            (*rewrite -> Nat.add_1_r at 2 3.*)
             rewrite -> H5 in H1.
             rewrite -> H5 in H.
             firstorder.
@@ -337,7 +205,7 @@ Proof.
 Qed.
 
 Lemma spseq_sseq_path'' :
-  forall (I:init) (T:trans) (P:prop),
+  forall (I:prop) (T:trans) (P:prop),
   forall r:spseq,
   forall ss: sseq,
   (*(forall s, I s <-> r 0 s) ->*)
@@ -365,198 +233,94 @@ Proof.
       rewrite -> Nat.add_1_r in H0.
       unfold path in H0; fold path in H0; destruct H0.
       do 2 rewrite -> Nat.add_0_l in H2.
-      rewrite <- Nat.add_1_r in H2.
+      (*rewrite <- Nat.add_1_r in H2.*)
       firstorder.
 Qed.
 
-(*
-Theorem pdr_soundness_f'' :
-  forall (I:init) (T:trans) (P:prop),
-  forall r:spseq,
-  pdr_post_f I T P r ->
-    ~(forall (i:nat) (ss:sseq), 
-      ~(I ss.[0] /\ path T ss 0 i /\ ~P ss.[i])).
+(**)
+
+Definition pdr_post_f (I:prop) (T:trans) (P:prop) (k:nat) : Prop :=
+  (forall ss, I ss.[0] ->P ss.[0]) /\
+  (forall ss, I ss.[0] -> T ss.[0] ss.[1] -> P ss.[1]) /\
+  (forall (r:spseq) (ss:sseq),
+    r k ss.[k] -> T ss.[k] ss.[S k] -> spseq_sseq I T r ss k -> P ss.[S k] ).
+
+Theorem pdr_soundness_f :
+  forall (I:prop) (T:trans) (P:prop),
+  (exists k, ~pdr_post_f I T P k) ->
+    ~(forall (i:nat), prop_k_init I T P i).
 Proof.
-  intros * H.
-  contradict H.
-  unfold pdr_post_f.
-  rewrite -> not_or_and3.
-  assert (forall p q r, ((p /\ q) /\ r) -> (p /\ q /\ r)) as A by tauto.
-  apply A; clear A.
-  split.
-  - split;
-    unfold not at 1;
-    intros H0;
-    destruct H0 as [ss];
-    assert (~(I ss.[0] /\ path T ss 0 0 /\ ~P ss.[0])) as H1 by apply H;
-    contradict H1.
-    + firstorder.
-    + firstorder.
-
-  - unfold not at 1.
-    intros.
-    (*do 1 destruct H0 as [?H H0].*)
-    destruct H0 as [i].
-    destruct H0 as [ss].
-
-    do 3 destruct H0 as [?H H0].
-
-    assert (~(I ss.[0] /\ path T ss 0 (i+1) /\ ~P ss.[i+1])) by apply H.
-    contradict H4.
-    apply spseq_sseq_path' in H0.
-    destruct H0.
-    destruct i.
-    + split.
-      apply H0.
-      rewrite -> Nat.add_0_l.
-      unfold path.
-      rewrite -> Nat.add_0_l.
-      firstorder.
-    + split.
-      apply H0.
-      assert (path T ss 0 (i+1) /\ r i ss.[i]).
-      apply H4; omega.
-      destruct H5.
-      split.
-      assert (S i+1 = S (i+1)) by omega.
-      rewrite -> H7.
-      unfold path; fold path.
-      split.
-      apply H5.
-      do 2 rewrite -> Nat.add_0_l.
-      rewrite <- H7.
-      rewrite -> Nat.add_1_r.
-      apply H2.
-      apply H3.
-    + auto.
-Qed.
-*)
-
-Definition pdr_post_f'' (I:init) (T:trans) (P:prop) : Prop :=
-  ~(forall ss, ~(I ss.[0] /\ ~P ss.[0])) \/
-  ~(forall ss, ~(I ss.[0] /\ T ss.[0] ss.[1] /\ ~P ss.[1])) \/
-  (*(forall s, I s -> P s) ->*)
-  ~(forall (i:nat) (r:spseq) (ss:sseq),
-    ~( r i ss.[i] /\ T ss.[i] ss.[i+1] /\ ~P ss.[i+1] /\
-       spseq_sseq I T r ss i ) ).
-
-Lemma or_not_and3 :
-  forall (p1 p2 p3:Prop), 
-  (~p1 \/ ~p2 \/ ~p3) -> ~(p1 /\ p2 /\ p3).
-Proof.
-  intros. firstorder.
-Qed.
-
-(*
-Lemma not_and_or3 :
-  forall (p1 p2 p3:Prop), 
-  ~(p1 /\ p2 /\ p3) -> (~p1 \/ ~p2 \/ ~p3).
-Proof.
-  intros. firstorder.
-Qed.
-*)
-
-Lemma not_or_and3 :
-  forall (p1 p2 p3:Prop), 
-  ~(p1 \/ p2 \/ p3) <-> (~p1 /\ ~p2 /\ ~p3).
-Proof.
-  intros. tauto.
-Qed.
-
-Theorem pdr_soundness_f1 :
-  forall (I:init) (T:trans) (P:prop),
-  forall r:spseq,
-  pdr_post_f'' I T P ->
-    ~(forall (i:nat) (ss:sseq), 
-      ~(I ss.[0] /\ path T ss 0 i /\ ~P ss.[i])).
-Proof.
-  unfold not at 1.
   intros.
-  unfold pdr_post_f'' in H.
-  apply or_not_and3 in H.
+  unfold pdr_post_f in H.
+  destruct H as [k].
+  (*apply or_not_and3 in H.*)
   contradict H.
-  split.
-  { intros.
-    assert (~ (I ss.[0] /\ path T ss 0 0 /\ ~ P ss.[0])) by apply H0.
-    firstorder. }
-  split.
-  { intros.
-    assert (~ (I ss.[0] /\ path T ss 0 1 /\ ~ P ss.[1])) by apply H0.
-    firstorder. }
-  intros.
-  assert (~ (I (ss) .[ 0] /\ path T ss 0 (i+1) /\ ~ P ss.[i+1])) by apply H0.
-  contradict H.
-  do 3 destruct H as [?H H] in H.
-  apply spseq_sseq_path' in H.
-  destruct H.
-  destruct i.
-  - split.
+  repeat split.
+  - intros * H0.
     apply H.
-    rewrite -> Nat.add_0_l.
-    unfold path.
-    rewrite -> Nat.add_0_l.
-    firstorder.
-  - split.
+    apply H0.
+    simpl; auto.
+  - intros * H0 H1.
     apply H.
-    assert (path T ss 0 (i+1) /\ r0 i ss.[i]).
-    apply H4; omega.
-    destruct H5.
-    split.
-    assert (S i+1 = S (i+1)) by omega.
-    rewrite -> H7.
-    unfold path; fold path.
-    split.
-    apply H5.
-    do 2 rewrite -> Nat.add_0_l.
-    rewrite <- H7.
-    rewrite -> Nat.add_1_r.
+    apply H0.
+    simpl.
+    split; auto.
+  - intros * H0 H1 H2.
+    apply spseq_sseq_path' in H2.
+    destruct H2.
+    apply H.
     apply H2.
-    apply H3.
-  - auto.
+    destruct k.
+    + simpl.
+      split; auto.
+    + simpl.
+      split.
+      assert (k < S k) as A by omega.
+      apply H3 in A.
+      destruct A as [H4 H5].
+      simpl in H4.
+      apply H4.
+      apply H1.
+    + auto.
 Qed.
 
 Definition of_sseq (ss:sseq) (i:nat) (s:state) : Prop :=
   ss.[i] = s.
 
 Theorem pdr_completeness_f :
-  forall (I:init) (T:trans) (P:prop),
-  ~(forall (i:nat) (ss:sseq), 
-    ~(I ss.[0] /\ path T ss 0 (i+1) /\ ~P ss.[i+1])) ->
-    pdr_post_f'' I T P.
+  forall (I:prop) (T:trans) (P:prop),
+  ~(forall (i:nat), prop_k_init I T P i) ->
+    (*exists k, ~pdr_post_f I T P k.*)
+    ~forall k, pdr_post_f I T P k.
 Proof.
-  unfold pdr_post_f''.
-  intros.
-  right.
-  right.
+  unfold prop_k_init.
+  unfold pdr_post_f.
+  intros * H.
   contradict H.
-  intros.
+  intros * H2 H3.
+  destruct i.
+  specialize H with 0.
+  apply H; apply H2.
+  specialize H with i.
+  do 2 destruct H as [?H H].
   remember (of_sseq ss) as r.
-  assert (~(r i ss.[i] /\ T ss.[i] ss.[i+1] /\ ~P ss.[i+1] /\ spseq_sseq I T r ss i)) by apply H with (r:=r).
-  contradict H0.
-  destruct H0.
-  destruct H1.
-  rewrite -> Nat.add_1_r in H1.
-  repeat split.
+  (*assert (~(r i ss.[i] /\ T ss.[i] ss.[i+1] /\ ~P ss.[i+1] /\ spseq_sseq I T r ss i)) by apply H.*)
+  apply H with (r:=r).
   - rewrite -> Heqr.
     unfold of_sseq.
     reflexivity.
-  - unfold path in H1; fold path in H1.
-    destruct H1.
-    do 2 rewrite -> Nat.add_0_l in H3.
-    rewrite <- Nat.add_1_r in H3.
+  - simpl in H3.
     apply H3.
-  - apply H2.
   - apply spseq_sseq_path''.
     auto.
     repeat split.
-    + apply H0.
-    + assert (i0+(i-i0)=i) by omega.
-      rewrite <- H4 in H1.
-      rewrite <- Nat.add_1_r in H1.
-      assert (i0+(i-i0)+1=i0+1+(i-i0)) by omega.
-      rewrite -> H5 in H1.
-      apply split_path in H1.
-      apply H1.
+    + apply H2.
+    + assert (i0+(i-i0)=i) as A by omega.
+      rewrite <- A in H3; clear A.
+      assert (S (i0+(i-i0))=i0+1+(i-i0)) as A by omega.
+      rewrite -> A in H3.
+      apply split_path in H3.
+      apply H3.
     + rewrite -> Heqr.
       unfold of_sseq.
       reflexivity.

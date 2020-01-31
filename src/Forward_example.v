@@ -4,36 +4,8 @@ Require Import Bmc.Example.
 Require Import SMTC.Tactic.
 Require Import SMTC.Integers.
 
-(*
-Lemma elim_imp_not :
-  forall p1 p2 : Prop, ~(True /\ p1 /\ p2) <-> (p1 -> ~p2).
-Proof.
-  intros. tauto.
-Qed.
-
-Lemma elim_imp_t_imp :
-  forall p1 p2 : Prop, ~((p1) /\ (~(p2))) <-> (p1 -> True -> p2).
-Proof.
-  intros. tauto.
-Qed.
-
-Lemma elim_imp_f :
-  forall p : Prop, ~(p /\ True) <-> (p -> False).
-Proof.
-  intros. tauto.
-Qed.
-
-Lemma elim_imp_t_imp' :
-  forall p1 p2, ~((p1) /\ (~(p2))) -> (p1 -> p2).
-Proof.
-  intros.
-  assert (0<1)%Z by omega.
-  tauto.
-Qed.
-*)
-
 (* An encoder that does not use implications. *)
-Definition forward_post_ni (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
+Definition forward_post_ni (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
   lasso_fwd_ni I T k /\ safety_k_ni I T P k.
 
 
@@ -61,7 +33,7 @@ Proof.
   repeat rewrite -> Nat.add_0_r.
 
   split.
-  - intros *.
+  - intros.
     smt solve; apply by_smt.
 
   - repeat split.

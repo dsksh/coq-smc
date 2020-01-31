@@ -7,7 +7,7 @@ Definition k_ind_step (T : trans)
   forall ss : sseq,
   loop_free T ss 0 k -> safety_k_offset P ss 0 k -> P ss.[k].
 
-Definition k_induction_post (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
+Definition k_induction_post (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
   k_ind_step T P k /\ safety_k I T P k.
 
 (**)
@@ -32,41 +32,6 @@ Proof.
     * rewrite skipn_nth.
       destruct i; firstorder.
 Qed.
-
-(*
-Lemma shift_k_ind_step : 
-  forall (T : trans) (P : prop) (i k : nat),
-  k < i ->
-  ( forall ss : sseq,
-     ~ ( loop_free T ss 0 k /\ 
-         safety_k_offset P ss 0 k /\ ~ P ss.[k] )) ->
-  forall ss : sseq,
-  ~ ( loop_free T ss (i-k) k /\ 
-    safety_k_offset P ss (i-k) k /\ ~ (P (ss.[i])) ).
-Proof.
-  intros * H H0 *.
-  apply neg_false.
-  split.
-  - unfold loop_free in *.
-    intros H1.
-    destruct H1 as [H1 H2].
-    destruct H1 as [H1 H1'].
-    destruct H2 as [H2 H2'].
-    apply skipn_no_loop in H1'.
-    apply skipn_prop with (k := k) in H2'.
-    apply skipn_path in H1.
-    apply skipn_safety_k_offset in H2.
-    assert (( path T (skipn (i-k) ss) 0 k /\
-      no_loop (skipn (i-k) ss) 0 k ) /\
-      safety_k_offset P (skipn (i-k) ss) 0 k /\ 
-      ~ P (skipn (i-k) ss).[k] ) as A
-      by firstorder.
-    apply H0 in A.
-    contradiction.
-    omega.
-  - tauto.
-Qed.
-*)
 
 Lemma shift_k_ind_step : 
   forall (T : trans) (P : prop) (i k : nat),
@@ -107,7 +72,7 @@ Proof.
 Qed.
 
 Lemma lt_wf_ind_incl_prop : 
-  forall (I : init) (T : trans) (P : prop) (ss : sseq) (i k : nat),
+  forall (I : prop) (T : trans) (P : prop) (ss : sseq) (i k : nat),
   k < i -> I ss.[0] /\ loop_free T ss 0 i ->
   ( forall m : nat,
     m < i -> I ss.[0] /\ loop_free T ss 0 m ->
@@ -143,7 +108,7 @@ Qed.
 (**)
 
 Theorem soundness_k_induction' :
-  forall (I : init) (T : trans) (P : prop) (k : nat),
+  forall (I : prop) (T : trans) (P : prop) (k : nat),
   k_induction_post I T P k -> 
   forall (i : nat), prop_k_init_lf I T P i.
 Proof.
@@ -192,13 +157,24 @@ Qed.
 Require Export Bmc.LoopFree.
 
 Theorem soundness_k_induction :
-  forall (I : init) (T : trans) (P : prop) (k : nat),
+  forall (I : prop) (T : trans) (P : prop) (k : nat),
   k_induction_post I T P k -> 
   forall (i : nat), prop_k_init I T P i.
 Proof.
   intros * H.
   apply safety_lf_path.
   apply soundness_k_induction' with (k := k).
+  apply H.
+Qed.
+
+Theorem soundness_k_induction1 :
+  forall (I : prop) (T : trans) (P : prop),
+  ( exists k, k_induction_post I T P k ) ->
+  forall (i : nat), prop_k_init I T P i.
+Proof.
+  intros * H.
+  destruct H as [k].
+  apply soundness_k_induction with (k:=k).
   apply H.
 Qed.
 

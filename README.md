@@ -1,4 +1,8 @@
-# A Verified Bounded Model Checker in Coq
+# A SAT-based Model Checking Methods in Coq
+
+Specification of SMT-based model checking methods in Coq.
+We aim to verify the correctness of the methods.
+Currently formal soundness proofs are included.
 
 ## Requirements
 
@@ -30,6 +34,7 @@ The following diagram represents the contents of the modules and the dependencie
 ```
 .
 +-- Logic: Some auxiliary lemmas.
++-- LoopFree: Lemmas for relating loop and loop-free paths.
     |
     +-- Core: Definitions of transition systems, etc.;
         |       A thery of state sequences and paths.
@@ -44,5 +49,8 @@ The following diagram represents the contents of the modules and the dependencie
         |   +-- Backward_example
         |
         +-- KInduction.v: A k-induction method.
-            +-- KInduction_example
+        |   +-- KInduction_example
+        |
+        +-- PDR.v: An IC3/PDR method.
+            +-- PDR_example
 ```            

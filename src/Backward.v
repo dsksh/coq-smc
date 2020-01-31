@@ -2,13 +2,13 @@ Require Export Bmc.Core.
 Require Import Omega.
 
 
-Definition backward_post (I : init) (T : trans) (P : prop) (k: nat) : Prop :=
+Definition backward_post (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
   lasso_bwd T P  k /\ safety_k I T P k.
 
 (* *)
 
 Local Theorem case1 :
-  forall (I : init) (T : trans) (P : prop) (k : nat),
+  forall (I : prop) (T : trans) (P : prop) (k : nat),
   backward_post I T P k -> 
     forall (i : nat), (i <= k) -> prop_k_init_lf I T P i.
 Proof.
@@ -58,7 +58,7 @@ Proof.
   firstorder.
 Qed.
 
-Local Lemma case2_2 : forall (I : init) (T : trans) (P : prop) (i k : nat),
+Local Lemma case2_2 : forall (I : prop) (T : trans) (P : prop) (i k : nat),
   i > k -> 
   lasso_bwd T P k -> 
   prop_k_init_lf I T P i.
@@ -77,7 +77,7 @@ Proof.
 Qed.
 
 Local Lemma case2 :
-  forall (I : init) (T : trans) (P : prop) (k : nat),
+  forall (I : prop) (T : trans) (P : prop) (k : nat),
   backward_post I T P k -> 
   forall (i : nat), (i > k) -> prop_k_init_lf I T P i.
 Proof.
@@ -90,7 +90,7 @@ Qed.
 (**)
 
 Theorem soundness_backward' :
-  forall (I : init) (T : trans) (P : prop) (k : nat),
+  forall (I : prop) (T : trans) (P : prop) (k : nat),
   backward_post I T P k -> 
   forall (i : nat), prop_k_init_lf I T P i.
 Proof.
@@ -105,13 +105,24 @@ Qed.
 Require Export Bmc.LoopFree.
 
 Theorem soundness_backward :
-  forall (I : init) (T : trans) (P : prop) (k : nat),
+  forall (I : prop) (T : trans) (P : prop) (k : nat),
   backward_post I T P k -> 
   forall (i : nat), prop_k_init I T P i.
 Proof.
   intros * H.
   apply safety_lf_path.
   apply soundness_backward' with (k := k).
+  apply H.
+Qed.
+
+Theorem soundness_backward1 :
+  forall (I : prop) (T : trans) (P : prop),
+  ( exists k, backward_post I T P k ) -> 
+  forall (i : nat), prop_k_init I T P i.
+Proof.
+  intros * H.
+  destruct H as [k].
+  apply soundness_backward with (k:=k).
   apply H.
 Qed.
 

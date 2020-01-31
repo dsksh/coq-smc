@@ -423,8 +423,9 @@ Proof.
   intros. tauto.
 Qed.
 
+
 Lemma safety_lf_path'' :
-  forall (I:init) (T:trans) (P:prop) (k:nat),
+  forall (I:prop) (T:trans) (P:prop) (k:nat),
   ( forall (j:nat), j < k -> prop_k_init I T P j ) ->
     prop_k_init_lf I T P k ->
     prop_k_init I T P k.
@@ -491,7 +492,7 @@ Proof.
 Qed.
 
 Lemma safety_lf_path' :
-  forall (I:init) (T:trans) (P:prop) (k : nat),
+  forall (I:prop) (T:trans) (P:prop) (k : nat),
   ( forall (i : nat), i <= k -> prop_k_init_lf I T P i ) ->
     forall (j : nat), j <= k -> prop_k_init I T P j.
 Proof.
@@ -516,7 +517,7 @@ Proof.
 Qed.
 
 Lemma safety_lf_path :
-  forall (I:init) (T:trans) (P:prop),
+  forall (I:prop) (T:trans) (P:prop),
   ( forall (i : nat), prop_k_init_lf I T P i ) ->
     forall (j : nat), prop_k_init I T P j.
 Proof.

@@ -45,7 +45,6 @@ Qed.
 
 (**)
 
-Definition init : Type := state -> Prop.
 Definition trans : Type := state -> state -> Prop.
 Definition prop : Type := state -> Prop.
 
@@ -79,11 +78,11 @@ Definition loop (ss : sseq) (o m n : nat) : Prop :=
 Definition loop_free (T : trans) (ss : sseq) (o k: nat) : Prop :=
   path T ss o k /\ no_loop ss o k.
 
-Definition lasso_fwd (I : init) (T : trans) (k : nat) : Prop :=
+Definition lasso_fwd (I : prop) (T : trans) (k : nat) : Prop :=
   forall ss : sseq,
   I ss.[0] -> ~loop_free T ss 0 k.
 
-Definition lasso_fwd_ni (I : init) (T : trans) (k : nat) : Prop :=
+Definition lasso_fwd_ni (I : prop) (T : trans) (k : nat) : Prop :=
   forall ss : sseq,
   ~(I ss.[0] /\ loop_free T ss 0 k).
 
@@ -100,27 +99,27 @@ Definition lasso_bwd_ni (T : trans) (P : prop) (k: nat) : Prop :=
   ~(loop_free T ss 0 k /\ ~P ss.[k]).
 
 
-Definition prop_k_init (I : init) (T : trans) (P : prop) (k : nat) : Prop :=
+Definition prop_k_init (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   forall ss : sseq,
   I ss.[0] -> path T ss 0 k -> P ss.[k].
 
-Definition prop_k_init_ni (I : init) (T : trans) (P : prop) (k : nat) : Prop :=
+Definition prop_k_init_ni (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   forall ss : sseq,
   ~(I ss.[0] /\ path T ss 0 k /\ ~P ss.[k]).
 
-Fixpoint safety_k (I : init) (T : trans) (P : prop) (k : nat) : Prop :=
+Fixpoint safety_k (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   match k with
   | O => prop_k_init I T P k
   | S k' => safety_k I T P k' /\ prop_k_init I T P k
   end.
 
-Fixpoint safety_k_ni (I : init) (T : trans) (P : prop) (k : nat) : Prop :=
+Fixpoint safety_k_ni (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   match k with
   | O => prop_k_init_ni I T P k
   | S k' => safety_k_ni I T P k' /\ prop_k_init_ni I T P k
   end.
 
-Definition prop_k_init_lf  (I : init) (T : trans) (P : prop) (k : nat) : Prop :=
+Definition prop_k_init_lf  (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   forall ss : sseq,
   I ss.[0] -> loop_free T ss 0 k -> P ss.[k].
 
@@ -133,7 +132,7 @@ Fixpoint safety_k_offset (P : prop) (ss : sseq) (o k: nat) : Prop :=
 (**)
 
 Lemma safety_path_lf :
-  forall (I:init) (T:trans) (P:prop),
+  forall (I:prop) (T:trans) (P:prop),
   forall (i:nat),
     prop_k_init I T P i ->
     prop_k_init_lf I T P i.
@@ -150,7 +149,7 @@ Proof.
 Qed.
 
 Lemma bounded_safety : 
-  forall (i k : nat) (I : init) (T : trans) (P : prop),
+  forall (i k : nat) (I : prop) (T : trans) (P : prop),
   i <= k -> safety_k I T P k -> prop_k_init I T P i.
 Proof.
   intros.

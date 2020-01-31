@@ -4,7 +4,8 @@ Require Import Bmc.Core.
 (* ex1: 3-bit register. *)
 
 Definition ex1_I (s : state) : Prop :=
-  s = 4%Z.
+  (s >= 4)%Z.
+  (*False.*)
 
 Definition ex1_T (si sj : state) : Prop :=
   (*((si * 2) mod 8 = sj)%Z.*)
@@ -12,6 +13,7 @@ Definition ex1_T (si sj : state) : Prop :=
 
 Definition ex1_P (s : state) : Prop :=
   ~ (s = 0)%Z.
+  (*True.*)
 
 
 (* ex2: 1-0 sequence. *)
