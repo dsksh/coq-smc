@@ -1,6 +1,6 @@
-Require Import Bmc.Core.
-Require Import Bmc.PDR.
 Require Import Bmc.Example.
+Require Import Bmc.PDR.
+
 Require Import SMTC.Tactic.
 Require Import SMTC.Integers.
 

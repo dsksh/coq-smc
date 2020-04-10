@@ -82,9 +82,10 @@ Definition lasso_fwd (I : prop) (T : trans) (k : nat) : Prop :=
   forall ss : sseq,
   I ss.[0] -> ~loop_free T ss 0 k.
 
-Definition lasso_fwd_ni (I : prop) (T : trans) (k : nat) : Prop :=
+(*Definition lasso_fwd_ni (I : prop) (T : trans) (k : nat) : Prop :=
   forall ss : sseq,
   ~(I ss.[0] /\ loop_free T ss 0 k).
+*)
 
 Definition lasso_bwd (T : trans) (P : prop) (k: nat) : Prop :=
   forall ss : sseq,
@@ -94,18 +95,19 @@ Definition lasso_bwd' (T : trans) (P : prop) (k: nat) : Prop :=
   forall ss : sseq,
   ~P ss.[k] -> ~loop_free T ss 0 k.
 
-Definition lasso_bwd_ni (T : trans) (P : prop) (k: nat) : Prop :=
+(*Definition lasso_bwd_ni (T : trans) (P : prop) (k: nat) : Prop :=
   forall ss : sseq,
   ~(loop_free T ss 0 k /\ ~P ss.[k]).
-
+*)
 
 Definition prop_k_init (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   forall ss : sseq,
   I ss.[0] -> path T ss 0 k -> P ss.[k].
 
-Definition prop_k_init_ni (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
+(*Definition prop_k_init_ni (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   forall ss : sseq,
   ~(I ss.[0] /\ path T ss 0 k /\ ~P ss.[k]).
+*)
 
 Fixpoint safety_k (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   match k with
@@ -113,11 +115,12 @@ Fixpoint safety_k (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   | S k' => safety_k I T P k' /\ prop_k_init I T P k
   end.
 
-Fixpoint safety_k_ni (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
+(*Fixpoint safety_k_ni (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   match k with
   | O => prop_k_init_ni I T P k
   | S k' => safety_k_ni I T P k' /\ prop_k_init_ni I T P k
   end.
+*)
 
 Definition prop_k_init_lf  (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   forall ss : sseq,

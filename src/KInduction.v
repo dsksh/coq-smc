@@ -3,12 +3,12 @@ Require Import Omega.
 
 
 Definition k_ind_step (T : trans)
-  (P : prop) (k: nat) : Prop :=
+  (P : prop) (i: nat) : Prop :=
   forall ss : sseq,
-  loop_free T ss 0 k -> safety_k_offset P ss 0 k -> P ss.[k].
+  loop_free T ss 0 i -> safety_k_offset P ss 0 i -> P ss.[i].
 
 Definition k_induction_post (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
-  k_ind_step T P k /\ safety_k I T P k.
+  k_ind_step T P (S k) /\ safety_k I T P (S k).
 
 (**)
 
@@ -71,7 +71,7 @@ Proof.
     + firstorder; now rewrite Nat.add_succ_comm in *.
 Qed.
 
-Lemma lt_wf_ind_incl_prop : 
+(*Lemma lt_wf_ind_incl_prop' : 
   forall (I : prop) (T : trans) (P : prop) (ss : sseq) (i k : nat),
   k < i -> I ss.[0] /\ loop_free T ss 0 i ->
   ( forall m : nat,
@@ -104,6 +104,41 @@ Proof.
       omega.
     + omega.
 Qed.
+*)
+
+Lemma lt_wf_ind_incl_prop : 
+  forall (I : prop) (T : trans) (P : prop) (ss : sseq) (i k : nat),
+  S k < i -> I ss.[0] /\ loop_free T ss 0 i ->
+  ( forall m : nat,
+    m < i -> I ss.[0] /\ loop_free T ss 0 m ->
+    P ss.[m] ) -> 
+      safety_k_offset P ss (i - S k) (S k).
+Proof.
+  intros * H H0 H1.
+  induction (S k) as [|k' IHk].
+  - unfold safety_k_offset.
+    easy.
+  - apply cons_safety_k_offset.
+    replace (i - S k') with (i - k' - 1).
+    split.
+    + apply H1.
+      omega.
+      split.
+      * tauto.
+      * destruct H0 as [H0 H0'].
+        unfold loop_free in *.
+        assert (i = (i - k' - 1) + (k' + 1)) as A by omega.
+        rewrite A in H0'.
+        destruct H0' as [H2 H3].
+        apply split_path in H2.
+        apply split_no_loop in H3.
+        tauto.
+    + replace (S (i-k'-1)) with (i-k').
+      apply IHk.
+      omega.
+      omega.
+    + omega.
+Qed.
 
 (**)
 
@@ -114,33 +149,27 @@ Theorem soundness_k_induction' :
 Proof.
   unfold prop_k_init_lf.
   intros * H *.
-  (*apply and_imply_not_and3.*)
   intros H0 H0'.
 
   induction i as [* H1] using lt_wf_ind.
   unfold k_induction_post in H.
 
-  destruct (Nat.le_gt_cases i k) as [H2|H2].
+  destruct (Nat.le_gt_cases i (S k)) as [H2|H2].
   - apply bounded_safety with (I:=I) (T:=T) (P:=P) in H2.
     unfold prop_k_init in H2.
-    (*assert (~ (I ss.[0] /\ path T ss 0 i /\ ~ P ss.[i])) as A0 by apply H2.
-    clear H2.
-    apply <- and_imply_not_and3 in A0.
-    apply A0.*)
     apply H2.
     apply H0.
-    simpl.
-    firstorder.
-    tauto.
+    apply H0'.
+    simpl in H.
+    apply H.
   - destruct H as [H H3].
     unfold k_ind_step in H.
-    (*destruct H0 as [H0 H0'].*)
-    assert (i = (i - k) + k) as A0 by omega.
+    assert (i = (i - S k) + S k) as A0 by omega.
     assert (loop_free T ss 0 i) as A1 by auto.
     rewrite A0 in A1; clear A0.
     apply split_loop_free in A1.
     destruct A1 as [A1 A1'].
-    assert (k < i) as A2 by omega.
+    assert (S k < i) as A2 by omega.
     apply shift_k_ind_step with (T:=T) (P:=P) (ss:=ss) in H2.
     apply H2.
     apply H.
@@ -176,6 +205,39 @@ Proof.
   destruct H as [k].
   apply soundness_k_induction with (k:=k).
   apply H.
+Qed.
+
+(**)
+
+Require Export Bmc.CoreConj.
+
+Definition k_ind_step_conj (T : trans)
+  (P : prop) (k: nat) : Prop :=
+  forall ss : sseq,
+  ~(loop_free T ss 0 k /\ safety_k_offset P ss 0 k /\ ~P ss.[k]).
+
+Lemma k_ind_step_conj_eq :
+  forall (T:trans) (P:prop) (k:nat),
+  k_ind_step T P k <-> k_ind_step_conj T P k.
+Proof.
+  intros *.
+  unfold k_ind_step, k_ind_step_conj.
+  split; intros H *; apply imply_not_and3; apply H.
+Qed.
+
+
+Definition k_induction_post_conj (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
+  k_ind_step_conj T P (S k) /\ safety_k_conj I T P (S k).
+
+Lemma k_induction_post_conj_eq :
+  forall (I:prop) (T:trans) (P:prop) (k:nat),
+  k_induction_post I T P k <-> k_induction_post_conj I T P k.
+Proof.
+  intros *.
+  unfold k_induction_post, k_induction_post_conj.
+  rewrite safety_k_conj_eq.
+  rewrite k_ind_step_conj_eq.
+  tauto.
 Qed.
 
 (* eof *)

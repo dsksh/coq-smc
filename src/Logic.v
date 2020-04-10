@@ -2,7 +2,7 @@ Require Export Coq.Logic.Classical_Prop.
 
 Lemma not_and_imply3 :
   forall (p1 p2 p3:Prop), 
-  ~(p1 /\ p2 /\ ~p3) -> (p1 /\ p2 -> p3).
+  ~(p1 /\ p2 /\ ~p3) <-> (p1 /\ p2 -> p3).
 Proof.
   intros. tauto.
 Qed.

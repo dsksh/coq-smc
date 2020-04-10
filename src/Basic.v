@@ -2,7 +2,7 @@ Require Export Bmc.Core.
 
 
 Definition naive_post (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
-  safety_k I T P k.
+  safety_k I T P (S k).
 
 Definition induction_post (I : prop) (T : trans) (P : prop) : Prop :=
   (forall (s:state), I s -> P s) /\
@@ -13,23 +13,23 @@ Definition induction_post (I : prop) (T : trans) (P : prop) : Prop :=
 Theorem soundness_naive_bounded :
   forall (I:prop) (T:trans) (P:prop) (k:nat),
   naive_post I T P k ->
-  forall (i:nat), i <= k ->
+  forall (i:nat), i <= (S k) ->
   prop_k_init I T P i.
 Proof.
-  intros * H i ss H0.
+  intros * H i H0 ss.
   unfold naive_post in H.
-  induction k.
-  - assert (i = 0) by omega.
+  induction (S k) as [|k' IHk].
+  - assert (i = 0) as A by omega.
     simpl in H.
     unfold prop_k_init in H.
-    rewrite -> H1.
+    rewrite -> A.
     apply H.
-  - destruct (Nat.le_gt_cases i k).
+  - destruct (Nat.le_gt_cases i k').
     + apply IHk.
       { apply H. }
       { apply H1. }
-    + assert (i = S k) by omega.
-      destruct k; rewrite H2; firstorder.
+    + assert (i = S k') by omega.
+      destruct k'; rewrite H2; firstorder.
 Qed.
 
 Theorem soundness_naive_f :
@@ -41,7 +41,7 @@ Proof.
   destruct H as [k].
   contradict H.
   unfold naive_post.
-  induction k as [|k IHk].
+  induction (S k) as [|k' IHk].
   - unfold safety_k, prop_k_init.
     intros *.
     apply H.
@@ -63,13 +63,15 @@ Proof.
   contradict H.
   unfold prop_k_init.
   intros *.
-  assert (safety_k I T P i) as A by apply H.
   destruct i.
-  - unfold safety_k, prop_k_init in A.
-    apply A.
-  - simpl in A; destruct A as [_ A].
-    unfold prop_k_init in A.
-    apply A.
+  - specialize (H 0).
+    unfold safety_k, prop_k_init in H.
+    apply H.
+  - specialize (H i).
+    unfold naive_post, safety_k in H.
+    destruct H as [_ H].
+    unfold prop_k_init in H.
+    apply H.
 Qed.
 
 Theorem soundness_induction :
@@ -105,6 +107,22 @@ Proof.
     by apply H.
   simpl in A.
   firstorder.
+Qed.
+
+(**)
+
+Require Export Bmc.CoreConj.
+
+Definition naive_post_conj (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
+  safety_k_conj I T P (S k).
+
+Theorem naive_post_conj_eq :
+  forall (I:prop) (T:trans) (P:prop) (k:nat),
+  naive_post I T P k <-> naive_post_conj I T P k.
+Proof.
+  intros *.
+  unfold naive_post, naive_post_conj.
+  apply safety_k_conj_eq.
 Qed.
 
 (* eof *)

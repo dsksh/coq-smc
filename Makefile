@@ -87,6 +87,7 @@ endif
 VFILES:=\
   src/Logic.v\
   src/Core.v\
+  src/CoreConj.v\
   src/LoopFree.v\
   src/Example.v\
   src/Basic.v\

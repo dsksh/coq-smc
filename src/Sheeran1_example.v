@@ -1,13 +1,16 @@
 Require Import Bmc.Forward.
+Require Import Bmc.Backward.
 Require Import Bmc.Example.
 
 Require Import SMTC.Tactic.
 Require Import SMTC.Integers.
 
-(*(* An encoder that does not use implications. *)
-Definition forward_post_conj (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
-  lasso_fwd_conj I T k /\ safety_k_conj I T P k.
-*)
+
+(* First algorithm of [Sheeran+ 2000]. *)
+Definition sheeran1_post (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
+  safety_k_conj I T P (S k) /\
+  (lasso_fwd_conj I T (S k) \/ lasso_bwd_conj T P (S k)).
+
 
 Set SMT Solver "z3".
 Set SMT Debug.
@@ -15,11 +18,12 @@ Set SMT Debug.
 Axiom by_smt : forall P : Prop, P.
 
 
-Goal forward_post_conj ex1_I ex1_T ex1_P 3.
+Goal sheeran1_post ex1_I ex1_T ex1_P 1.
 Proof.
   unfold ex1_I, ex1_T, ex1_P.
-  unfold forward_post_conj.
+  unfold sheeran1_post.
   unfold lasso_fwd_conj.
+  unfold lasso_bwd_conj.
   unfold safety_k_conj.
   unfold prop_k_init_conj.
   unfold loop_free.
@@ -31,11 +35,7 @@ Proof.
   unfold state.
   repeat rewrite -> Nat.add_0_l.
   repeat rewrite -> Nat.add_0_r.
-
   split.
-  - intros.
-    smt solve; apply by_smt.
-
   - repeat split.
     + intros.
       smt solve; apply by_smt.
@@ -43,32 +43,32 @@ Proof.
       smt solve; apply by_smt.
     + intros.
       smt solve; apply by_smt.
-    + intros.
-      smt solve; apply by_smt.
-    + intros.
-      smt solve; apply by_smt.
+  - (right; intros; smt solve; apply by_smt) ||
+    (left; intros; smt solve; apply by_smt).
 Qed.
 
-Goal forward_post_conj ex2_I ex2_T ex2_P 2.
+Goal sheeran1_post ex2_I ex2_T ex2_P 2.
 Proof.
   unfold ex2_I, ex2_T, ex2_P.
-  unfold forward_post_conj, lasso_fwd_conj, safety_k_conj, prop_k_init_conj, loop_free, path, no_loop, no_loop', sseq, nth, state.
+  unfold sheeran1_post, lasso_fwd_conj, lasso_bwd_conj, safety_k_conj, prop_k_init_conj, loop_free, path, no_loop, no_loop', sseq, nth, state.
   repeat rewrite -> Nat.add_0_l;
   repeat rewrite -> Nat.add_0_r.
   split.
-  intros; smt solve; apply by_smt.
   repeat split; intros; smt solve; apply by_smt.
+  (right; intros; smt solve; apply by_smt) ||
+  (left; intros; smt solve; apply by_smt).
 Qed.
 
-Goal forward_post_conj ex3_I ex3_T ex3_P 5.
+Goal sheeran1_post ex3_I ex3_T ex3_P 5.
 Proof.
   unfold ex3_I, ex3_T, ex3_P.
-  unfold forward_post_conj, lasso_fwd_conj, safety_k_conj, prop_k_init_conj, loop_free, path, no_loop, no_loop', sseq, nth, state.
+  unfold sheeran1_post, lasso_fwd_conj, lasso_bwd_conj, safety_k_conj, prop_k_init_conj, loop_free, path, no_loop, no_loop', sseq, nth, state.
   repeat rewrite -> Nat.add_0_l;
   repeat rewrite -> Nat.add_0_r.
   split.
-  intros; smt solve; apply by_smt.
   repeat split; intros; smt solve; apply by_smt.
+  (right; intros; smt solve; apply by_smt) ||
+  (left; intros; smt solve; apply by_smt).
 Qed.
 
 (* eof *)
