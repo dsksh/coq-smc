@@ -82,11 +82,6 @@ Definition lasso_fwd (I : prop) (T : trans) (k : nat) : Prop :=
   forall ss : sseq,
   I ss.[0] -> ~loop_free T ss 0 k.
 
-(*Definition lasso_fwd_ni (I : prop) (T : trans) (k : nat) : Prop :=
-  forall ss : sseq,
-  ~(I ss.[0] /\ loop_free T ss 0 k).
-*)
-
 Definition lasso_bwd (T : trans) (P : prop) (k: nat) : Prop :=
   forall ss : sseq,
   loop_free T ss 0 k -> P ss.[k].
@@ -95,41 +90,24 @@ Definition lasso_bwd' (T : trans) (P : prop) (k: nat) : Prop :=
   forall ss : sseq,
   ~P ss.[k] -> ~loop_free T ss 0 k.
 
-(*Definition lasso_bwd_ni (T : trans) (P : prop) (k: nat) : Prop :=
+Definition prop_nth_init (I : prop) (T : trans) (P : prop) (n : nat) : Prop :=
   forall ss : sseq,
-  ~(loop_free T ss 0 k /\ ~P ss.[k]).
-*)
+  I ss.[0] -> path T ss 0 n -> P ss.[n].
 
-Definition prop_k_init (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
-  forall ss : sseq,
-  I ss.[0] -> path T ss 0 k -> P ss.[k].
-
-(*Definition prop_k_init_ni (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
-  forall ss : sseq,
-  ~(I ss.[0] /\ path T ss 0 k /\ ~P ss.[k]).
-*)
-
-Fixpoint safety_k (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
-  match k with
-  | O => prop_k_init I T P k
-  | S k' => safety_k I T P k' /\ prop_k_init I T P k
+Fixpoint safety_nth (I : prop) (T : trans) (P : prop) (n : nat) : Prop :=
+  match n with
+  | O => prop_nth_init I T P n
+  | S n' => safety_nth I T P n' /\ prop_nth_init I T P n
   end.
 
-(*Fixpoint safety_k_ni (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
-  match k with
-  | O => prop_k_init_ni I T P k
-  | S k' => safety_k_ni I T P k' /\ prop_k_init_ni I T P k
-  end.
-*)
-
-Definition prop_k_init_lf  (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
+Definition prop_nth_init_lf  (I : prop) (T : trans) (P : prop) (n : nat) : Prop :=
   forall ss : sseq,
-  I ss.[0] -> loop_free T ss 0 k -> P ss.[k].
+  I ss.[0] -> loop_free T ss 0 n -> P ss.[n].
 
-Fixpoint safety_k_offset (P : prop) (ss : sseq) (o k: nat) : Prop :=
-  match k with
+Fixpoint safety_nth_offset (P : prop) (ss : sseq) (o n: nat) : Prop :=
+  match n with
   | O => True
-  | S k' => safety_k_offset P ss o k' /\ P ss.[o+k']
+  | S n' => safety_nth_offset P ss o n' /\ P ss.[o+n']
   end.
 
 (**)
@@ -137,12 +115,12 @@ Fixpoint safety_k_offset (P : prop) (ss : sseq) (o k: nat) : Prop :=
 Lemma safety_path_lf :
   forall (I:prop) (T:trans) (P:prop),
   forall (i:nat),
-    prop_k_init I T P i ->
-    prop_k_init_lf I T P i.
+    prop_nth_init I T P i ->
+    prop_nth_init_lf I T P i.
 Proof.
   intros.
-  unfold prop_k_init in H.
-  unfold prop_k_init_lf.
+  unfold prop_nth_init in H.
+  unfold prop_nth_init_lf.
   unfold loop_free.
   intros.
   destruct H1.
@@ -153,7 +131,7 @@ Qed.
 
 Lemma bounded_safety : 
   forall (i k : nat) (I : prop) (T : trans) (P : prop),
-  i <= k -> safety_k I T P k -> prop_k_init I T P i.
+  i <= k -> safety_nth I T P k -> prop_nth_init I T P i.
 Proof.
   intros.
   apply Nat.lt_eq_cases in H. 
@@ -161,7 +139,7 @@ Proof.
   - induction k.
     + easy.
     + destruct (Nat.lt_ge_cases i k).
-      * assert (H2 : safety_k I T P k /\ prop_k_init I T P k).
+      * assert (H2 : safety_nth I T P k /\ prop_nth_init I T P k).
         destruct k; firstorder; now rewrite <- plus_n_O in H0.
         apply IHk.
         auto.

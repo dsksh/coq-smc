@@ -8,7 +8,7 @@ Require Import SMTC.Integers.
 
 (* First algorithm of [Sheeran+ 2000]. *)
 Definition sheeran1_post (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
-  safety_k_conj I T P (S k) /\
+  safety_nth_conj I T P (S k) /\
   (lasso_fwd_conj I T (S k) \/ lasso_bwd_conj T P (S k)).
 
 
@@ -24,8 +24,8 @@ Proof.
   unfold sheeran1_post.
   unfold lasso_fwd_conj.
   unfold lasso_bwd_conj.
-  unfold safety_k_conj.
-  unfold prop_k_init_conj.
+  unfold safety_nth_conj.
+  unfold prop_nth_init_conj.
   unfold loop_free.
   unfold path.
   unfold no_loop.
@@ -50,7 +50,7 @@ Qed.
 Goal sheeran1_post ex2_I ex2_T ex2_P 2.
 Proof.
   unfold ex2_I, ex2_T, ex2_P.
-  unfold sheeran1_post, lasso_fwd_conj, lasso_bwd_conj, safety_k_conj, prop_k_init_conj, loop_free, path, no_loop, no_loop', sseq, nth, state.
+  unfold sheeran1_post, lasso_fwd_conj, lasso_bwd_conj, safety_nth_conj, prop_nth_init_conj, loop_free, path, no_loop, no_loop', sseq, nth, state.
   repeat rewrite -> Nat.add_0_l;
   repeat rewrite -> Nat.add_0_r.
   split.
@@ -62,7 +62,7 @@ Qed.
 Goal sheeran1_post ex3_I ex3_T ex3_P 5.
 Proof.
   unfold ex3_I, ex3_T, ex3_P.
-  unfold sheeran1_post, lasso_fwd_conj, lasso_bwd_conj, safety_k_conj, prop_k_init_conj, loop_free, path, no_loop, no_loop', sseq, nth, state.
+  unfold sheeran1_post, lasso_fwd_conj, lasso_bwd_conj, safety_nth_conj, prop_nth_init_conj, loop_free, path, no_loop, no_loop', sseq, nth, state.
   repeat rewrite -> Nat.add_0_l;
   repeat rewrite -> Nat.add_0_r.
   split.

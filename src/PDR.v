@@ -18,9 +18,9 @@ Lemma pdr_bounded_r :
   forall r:spseq,
   forall k,
   pdr_post_t I T P r k ->
-  forall i, i <= k+1 -> prop_k_init I T (r i) i.
+  forall i, i <= k+1 -> prop_nth_init I T (r i) i.
 Proof.
-  unfold pdr_post_t, prop_k_init.
+  unfold pdr_post_t, prop_nth_init.
   intros * PC' * H * I0 T0.
   do 4 destruct PC' as [?PC PC'].
   induction i.
@@ -42,14 +42,14 @@ Lemma pdr_bounded :
   forall r:spseq,
   forall k,
   pdr_post_t I T P r k ->
-  forall i, i <= k+1 -> prop_k_init I T P i.
+  forall i, i <= k+1 -> prop_nth_init I T P i.
 Proof.
-  unfold pdr_post_t, prop_k_init.
+  unfold pdr_post_t, prop_nth_init.
   intros * PC' * H * I0 T0.
   do 4 destruct PC' as [?PC PC'].
   apply PC0 with (i:=i).
   revert I0 T0. revert ss.
-  fold (prop_k_init I T (r i) i).
+  fold (prop_nth_init I T (r i) i).
   apply pdr_bounded_r with (P:=P) (k:=k).
   firstorder.
   apply H.
@@ -60,13 +60,13 @@ Lemma pdr_unbounded :
   forall r:spseq,
   forall i k,
   pdr_post_t I T P r k ->
-  i > S k -> prop_k_init I T P i.
+  i > S k -> prop_nth_init I T P i.
 Proof.
   intros * PC' H.
   assert (pdr_post_t I T P r k) as PC'' by auto.
   unfold pdr_post_t in PC''.
   do 4 destruct PC'' as [?PC PC''].
-  unfold prop_k_init.
+  unfold prop_nth_init.
   intros * I0 T0.
   apply PC0 with (i:=S k).
   clear PC PC0 PC1 PC2 PC''.
@@ -96,7 +96,7 @@ Proof.
       { assert (i=k+1) as H2. omega.
         revert T0; revert I0; revert ss.
         rewrite -> H2.
-        fold (prop_k_init I T (r (k+1)) (k+1)).
+        fold (prop_nth_init I T (r (k+1)) (k+1)).
         rewrite -> Nat.add_1_r.
         apply pdr_bounded_r with (P:=P) (r:=r) (k:=k).
         { firstorder. }
@@ -116,7 +116,7 @@ Theorem pdr_soundness_t :
   forall (I:prop) (T:trans) (P:prop) (k:nat),
   forall r:spseq,
   pdr_post_t I T P r k ->
-  forall i, prop_k_init I T P i.
+  forall i, prop_nth_init I T P i.
 Proof.
   intros.
   destruct (Nat.le_gt_cases i (k+1)).
@@ -130,7 +130,7 @@ Qed.
 Theorem pdr_soundness_t1 :
   forall (I:prop) (T:trans) (P:prop),
   ( exists (k:nat) (r:spseq), pdr_post_t I T P r k ) ->
-  forall i, prop_k_init I T P i.
+  forall i, prop_nth_init I T P i.
 Proof.
   intros * H *.
   destruct H as [k]; destruct H as [r].
@@ -248,7 +248,7 @@ Definition pdr_post_f (I:prop) (T:trans) (P:prop) (k:nat) : Prop :=
 Theorem pdr_soundness_f :
   forall (I:prop) (T:trans) (P:prop),
   (exists k, ~pdr_post_f I T P k) ->
-    ~(forall (i:nat), prop_k_init I T P i).
+    ~(forall (i:nat), prop_nth_init I T P i).
 Proof.
   intros.
   unfold pdr_post_f in H.
@@ -289,11 +289,11 @@ Definition of_sseq (ss:sseq) (i:nat) (s:state) : Prop :=
 
 Theorem pdr_completeness_f :
   forall (I:prop) (T:trans) (P:prop),
-  ~(forall (i:nat), prop_k_init I T P i) ->
+  ~(forall (i:nat), prop_nth_init I T P i) ->
     (*exists k, ~pdr_post_f I T P k.*)
     ~forall k, pdr_post_f I T P k.
 Proof.
-  unfold prop_k_init.
+  unfold prop_nth_init.
   unfold pdr_post_f.
   intros * H.
   contradict H.

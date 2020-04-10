@@ -3,14 +3,14 @@ Require Import Omega.
 
 
 Definition backward_post (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
-  lasso_bwd T P (S k) /\ safety_k I T P (S k).
+  lasso_bwd T P (S k) /\ safety_nth I T P (S k).
 
 (* *)
 
 Local Theorem case1 :
   forall (I : prop) (T : trans) (P : prop) (k : nat),
   backward_post I T P k -> 
-    forall (i : nat), (i <= S k) -> prop_k_init_lf I T P i.
+    forall (i : nat), (i <= S k) -> prop_nth_init_lf I T P i.
 Proof.
   intros * H * H0 *.
   unfold backward_post in H.
@@ -42,9 +42,9 @@ Qed.
 Local Lemma case2_2 : forall (I : prop) (T : trans) (P : prop) (i k : nat),
   i > k -> 
   lasso_bwd T P k -> 
-  prop_k_init_lf I T P i.
+  prop_nth_init_lf I T P i.
 Proof.
-  unfold lasso_bwd, prop_k_init_lf.
+  unfold lasso_bwd, prop_nth_init_lf.
   intros * H H0 * H1 H2.
 
   assert (A : i = (i - k) + k) by omega.
@@ -60,7 +60,7 @@ Qed.
 Local Lemma case2 :
   forall (I : prop) (T : trans) (P : prop) (k : nat),
   backward_post I T P k -> 
-  forall (i : nat), (i > S k) -> prop_k_init_lf I T P i.
+  forall (i : nat), (i > S k) -> prop_nth_init_lf I T P i.
 Proof.
   intros * H * H0.
   unfold backward_post in H.
@@ -73,7 +73,7 @@ Qed.
 Theorem soundness_backward' :
   forall (I : prop) (T : trans) (P : prop) (k : nat),
   backward_post I T P k -> 
-  forall (i : nat), prop_k_init_lf I T P i.
+  forall (i : nat), prop_nth_init_lf I T P i.
 Proof.
   intros * H *.
   destruct (Nat.le_gt_cases i (S k)) as [H0|H0].
@@ -88,7 +88,7 @@ Require Export Bmc.LoopFree.
 Theorem soundness_backward :
   forall (I : prop) (T : trans) (P : prop) (k : nat),
   backward_post I T P k -> 
-  forall (i : nat), prop_k_init I T P i.
+  forall (i : nat), prop_nth_init I T P i.
 Proof.
   intros * H.
   apply safety_lf_path.
@@ -99,7 +99,7 @@ Qed.
 Theorem soundness_backward1 :
   forall (I : prop) (T : trans) (P : prop),
   ( exists k, backward_post I T P k ) -> 
-  forall (i : nat), prop_k_init I T P i.
+  forall (i : nat), prop_nth_init I T P i.
 Proof.
   intros * H.
   destruct H as [k].
@@ -112,7 +112,7 @@ Qed.
 Require Export Bmc.CoreConj.
 
 Definition backward_post_conj (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
-  lasso_bwd_conj T P (S k) /\ safety_k_conj I T P (S k).
+  lasso_bwd_conj T P (S k) /\ safety_nth_conj I T P (S k).
 
 Lemma backward_post_conj_eq :
   forall (I:prop) (T:trans) (P:prop) (k:nat),
@@ -120,7 +120,7 @@ Lemma backward_post_conj_eq :
 Proof.
   intros *.
   unfold backward_post, backward_post_conj.
-  rewrite -> safety_k_conj_eq.
+  rewrite -> safety_nth_conj_eq.
   rewrite -> lasso_bwd_conj_eq.
   tauto.
 Qed.

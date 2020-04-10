@@ -58,16 +58,16 @@ Qed.
 
 
 
-Definition prop_k_init_conj (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
+Definition prop_nth_init_conj (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   forall ss : sseq,
   ~(I ss.[0] /\ path T ss 0 k /\ ~P ss.[k]).
 
-Lemma prop_k_init_conj_eq :
+Lemma prop_nth_init_conj_eq :
   forall (I:prop) (T:trans) (P:prop) (k:nat),
-  prop_k_init I T P k <-> prop_k_init_conj I T P k.
+  prop_nth_init I T P k <-> prop_nth_init_conj I T P k.
 Proof.
   intros *.
-  unfold prop_k_init, prop_k_init_conj.
+  unfold prop_nth_init, prop_nth_init_conj.
   split.
   - intros H *.
     apply not_and_imply3.
@@ -80,24 +80,24 @@ Proof.
 Qed.
 
 
-Fixpoint safety_k_conj (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
+Fixpoint safety_nth_conj (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
   match k with
-  | O => prop_k_init_conj I T P k
-  | S k' => safety_k_conj I T P k' /\ prop_k_init_conj I T P k
+  | O => prop_nth_init_conj I T P k
+  | S k' => safety_nth_conj I T P k' /\ prop_nth_init_conj I T P k
   end.
 
 
-Lemma safety_k_conj_eq :
+Lemma safety_nth_conj_eq :
   forall (I:prop) (T:trans) (P:prop) (k:nat),
-  safety_k I T P k <-> safety_k_conj I T P k.
+  safety_nth I T P k <-> safety_nth_conj I T P k.
 Proof.
   intros *.
   induction k.
-  - unfold safety_k, safety_k_conj.
-    apply prop_k_init_conj_eq.
+  - unfold safety_nth, safety_nth_conj.
+    apply prop_nth_init_conj_eq.
   - simpl.
     rewrite -> IHk.
-    rewrite -> prop_k_init_conj_eq.
+    rewrite -> prop_nth_init_conj_eq.
     tauto.
 Qed.
 

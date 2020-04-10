@@ -2,7 +2,7 @@ Require Export Bmc.Core.
 
 
 Definition naive_post (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
-  safety_k I T P (S k).
+  safety_nth I T P (S k).
 
 Definition induction_post (I : prop) (T : trans) (P : prop) : Prop :=
   (forall (s:state), I s -> P s) /\
@@ -14,14 +14,14 @@ Theorem soundness_naive_bounded :
   forall (I:prop) (T:trans) (P:prop) (k:nat),
   naive_post I T P k ->
   forall (i:nat), i <= (S k) ->
-  prop_k_init I T P i.
+  prop_nth_init I T P i.
 Proof.
   intros * H i H0 ss.
   unfold naive_post in H.
   induction (S k) as [|k' IHk].
   - assert (i = 0) as A by omega.
     simpl in H.
-    unfold prop_k_init in H.
+    unfold prop_nth_init in H.
     rewrite -> A.
     apply H.
   - destruct (Nat.le_gt_cases i k').
@@ -35,51 +35,51 @@ Qed.
 Theorem soundness_naive_f :
   forall (I : prop) (T : trans) (P : prop),
   (exists k, ~naive_post I T P k) ->
-  ~( forall (i:nat), prop_k_init I T P i ).
+  ~( forall (i:nat), prop_nth_init I T P i ).
 Proof.
   intros * H.
   destruct H as [k].
   contradict H.
   unfold naive_post.
   induction (S k) as [|k' IHk].
-  - unfold safety_k, prop_k_init.
+  - unfold safety_nth, prop_nth_init.
     intros *.
     apply H.
   - simpl.
     split.
     + apply IHk.
-    + unfold prop_k_init.
+    + unfold prop_nth_init.
       intros *.
       apply H.
 Qed.
 
 Theorem completeness_naive_f :
   forall (I : prop) (T : trans) (P : prop),
-  ~( forall (i:nat), prop_k_init I T P i ) ->
+  ~( forall (i:nat), prop_nth_init I T P i ) ->
   (*exists k, ~naive_post I T P k.*)
   ~( forall k, naive_post I T P k ).
 Proof.
   intros * H.
   contradict H.
-  unfold prop_k_init.
+  unfold prop_nth_init.
   intros *.
   destruct i.
   - specialize (H 0).
-    unfold safety_k, prop_k_init in H.
+    unfold safety_nth, prop_nth_init in H.
     apply H.
   - specialize (H i).
-    unfold naive_post, safety_k in H.
+    unfold naive_post, safety_nth in H.
     destruct H as [_ H].
-    unfold prop_k_init in H.
+    unfold prop_nth_init in H.
     apply H.
 Qed.
 
 Theorem soundness_induction :
   forall (I:prop) (T:trans) (P:prop),
   induction_post I T P ->
-    forall (i:nat), prop_k_init I T P i.
+    forall (i:nat), prop_nth_init I T P i.
 Proof.
-  unfold prop_k_init.
+  unfold prop_nth_init.
   intros * H *.
   unfold induction_post in H.
   destruct H as [H H0].
@@ -98,7 +98,7 @@ Qed.
 
 Theorem completeness_naive_basecase :
   forall (I:prop) (T:trans) (P:prop),
-  ( forall (i:nat), prop_k_init I T P i ) ->
+  ( forall (i:nat), prop_nth_init I T P i ) ->
       forall (ss:sseq), I ss.[0] -> P ss.[0].
 Proof.
   intros * H *.
@@ -114,7 +114,7 @@ Qed.
 Require Export Bmc.CoreConj.
 
 Definition naive_post_conj (I : prop) (T : trans) (P : prop) (k : nat) : Prop :=
-  safety_k_conj I T P (S k).
+  safety_nth_conj I T P (S k).
 
 Theorem naive_post_conj_eq :
   forall (I:prop) (T:trans) (P:prop) (k:nat),
@@ -122,7 +122,7 @@ Theorem naive_post_conj_eq :
 Proof.
   intros *.
   unfold naive_post, naive_post_conj.
-  apply safety_k_conj_eq.
+  apply safety_nth_conj_eq.
 Qed.
 
 (* eof *)

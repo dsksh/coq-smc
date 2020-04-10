@@ -5,24 +5,24 @@ Require Import Omega.
 Definition k_ind_step (T : trans)
   (P : prop) (i: nat) : Prop :=
   forall ss : sseq,
-  loop_free T ss 0 i -> safety_k_offset P ss 0 i -> P ss.[i].
+  loop_free T ss 0 i -> safety_nth_offset P ss 0 i -> P ss.[i].
 
 Definition k_induction_post (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
-  k_ind_step T P (S k) /\ safety_k I T P (S k).
+  k_ind_step T P (S k) /\ safety_nth I T P (S k).
 
 (**)
 
-Lemma skipn_safety_k_offset : 
+Lemma skipn_safety_nth_offset : 
   forall (P : prop) (i j : nat) (ss : sseq),
-  safety_k_offset P ss j i -> 
-  safety_k_offset P (skipn j ss) 0 i.
+  safety_nth_offset P ss j i -> 
+  safety_nth_offset P (skipn j ss) 0 i.
 Proof.
   intros * H.
   induction i as [|i IHi].
   - auto.
-  - assert (safety_k_offset P (skipn j ss) 0 i /\ 
+  - assert (safety_nth_offset P (skipn j ss) 0 i /\ 
       P (skipn j ss).[i] -> 
-      safety_k_offset P (skipn j ss) 0 (S i)) as A.
+      safety_nth_offset P (skipn j ss) 0 (S i)) as A.
     { intros H0.
       destruct i; firstorder. }
     apply A; clear A.
@@ -37,16 +37,16 @@ Lemma shift_k_ind_step :
   forall (T : trans) (P : prop) (i k : nat),
   k < i ->
   ( forall ss : sseq,
-     loop_free T ss 0 k -> safety_k_offset P ss 0 k -> P ss.[k] ) ->
+     loop_free T ss 0 k -> safety_nth_offset P ss 0 k -> P ss.[k] ) ->
   forall ss : sseq,
-  loop_free T ss (i-k) k -> safety_k_offset P ss (i-k) k -> P ss.[i].
+  loop_free T ss (i-k) k -> safety_nth_offset P ss (i-k) k -> P ss.[i].
 Proof.
   intros.
   unfold loop_free in H1.
   destruct H1 as [H1 H3].
   apply skipn_path in H1.
   apply skipn_no_loop in H3.
-  apply skipn_safety_k_offset in H2.
+  apply skipn_safety_nth_offset in H2.
   assert (i-k+k=i) as A by omega.
   rewrite <- A.
   rewrite <- skipn_nth.
@@ -55,12 +55,12 @@ Proof.
   apply H2.
 Qed.
 
-Lemma cons_safety_k_offset : forall (P : prop) (ss : sseq) (i j : nat),
-  P ss.[i] /\ safety_k_offset P ss (S i) j <->
-  safety_k_offset P ss i (S j).
+Lemma cons_safety_nth_offset : forall (P : prop) (ss : sseq) (i j : nat),
+  P ss.[i] /\ safety_nth_offset P ss (S i) j <->
+  safety_nth_offset P ss i (S j).
 Proof.
   destruct j.
-  - unfold safety_k_offset.
+  - unfold safety_nth_offset.
     rewrite -> Nat.add_0_r.
     tauto.
   - induction j as [|j IHj].
@@ -77,13 +77,13 @@ Qed.
   ( forall m : nat,
     m < i -> I ss.[0] /\ loop_free T ss 0 m ->
     P ss.[m] ) -> 
-      safety_k_offset P ss (i-k) k.
+      safety_nth_offset P ss (i-k) k.
 Proof.
   intros * H H0 H1.
   induction k as [|k IHk].
-  - unfold safety_k_offset.
+  - unfold safety_nth_offset.
     easy.
-  - apply cons_safety_k_offset.
+  - apply cons_safety_nth_offset.
     replace (i - S k) with (i - k - 1).
     split.
     + apply H1.
@@ -112,13 +112,13 @@ Lemma lt_wf_ind_incl_prop :
   ( forall m : nat,
     m < i -> I ss.[0] /\ loop_free T ss 0 m ->
     P ss.[m] ) -> 
-      safety_k_offset P ss (i - S k) (S k).
+      safety_nth_offset P ss (i - S k) (S k).
 Proof.
   intros * H H0 H1.
   induction (S k) as [|k' IHk].
-  - unfold safety_k_offset.
+  - unfold safety_nth_offset.
     easy.
-  - apply cons_safety_k_offset.
+  - apply cons_safety_nth_offset.
     replace (i - S k') with (i - k' - 1).
     split.
     + apply H1.
@@ -145,9 +145,9 @@ Qed.
 Theorem soundness_k_induction' :
   forall (I : prop) (T : trans) (P : prop) (k : nat),
   k_induction_post I T P k -> 
-  forall (i : nat), prop_k_init_lf I T P i.
+  forall (i : nat), prop_nth_init_lf I T P i.
 Proof.
-  unfold prop_k_init_lf.
+  unfold prop_nth_init_lf.
   intros * H *.
   intros H0 H0'.
 
@@ -156,7 +156,7 @@ Proof.
 
   destruct (Nat.le_gt_cases i (S k)) as [H2|H2].
   - apply bounded_safety with (I:=I) (T:=T) (P:=P) in H2.
-    unfold prop_k_init in H2.
+    unfold prop_nth_init in H2.
     apply H2.
     apply H0.
     apply H0'.
@@ -188,7 +188,7 @@ Require Export Bmc.LoopFree.
 Theorem soundness_k_induction :
   forall (I : prop) (T : trans) (P : prop) (k : nat),
   k_induction_post I T P k -> 
-  forall (i : nat), prop_k_init I T P i.
+  forall (i : nat), prop_nth_init I T P i.
 Proof.
   intros * H.
   apply safety_lf_path.
@@ -199,7 +199,7 @@ Qed.
 Theorem soundness_k_induction1 :
   forall (I : prop) (T : trans) (P : prop),
   ( exists k, k_induction_post I T P k ) ->
-  forall (i : nat), prop_k_init I T P i.
+  forall (i : nat), prop_nth_init I T P i.
 Proof.
   intros * H.
   destruct H as [k].
@@ -214,7 +214,7 @@ Require Export Bmc.CoreConj.
 Definition k_ind_step_conj (T : trans)
   (P : prop) (k: nat) : Prop :=
   forall ss : sseq,
-  ~(loop_free T ss 0 k /\ safety_k_offset P ss 0 k /\ ~P ss.[k]).
+  ~(loop_free T ss 0 k /\ safety_nth_offset P ss 0 k /\ ~P ss.[k]).
 
 Lemma k_ind_step_conj_eq :
   forall (T:trans) (P:prop) (k:nat),
@@ -227,7 +227,7 @@ Qed.
 
 
 Definition k_induction_post_conj (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
-  k_ind_step_conj T P (S k) /\ safety_k_conj I T P (S k).
+  k_ind_step_conj T P (S k) /\ safety_nth_conj I T P (S k).
 
 Lemma k_induction_post_conj_eq :
   forall (I:prop) (T:trans) (P:prop) (k:nat),
@@ -235,7 +235,7 @@ Lemma k_induction_post_conj_eq :
 Proof.
   intros *.
   unfold k_induction_post, k_induction_post_conj.
-  rewrite safety_k_conj_eq.
+  rewrite safety_nth_conj_eq.
   rewrite k_ind_step_conj_eq.
   tauto.
 Qed.

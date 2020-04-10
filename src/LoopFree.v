@@ -426,11 +426,11 @@ Qed.
 
 Lemma safety_lf_path'' :
   forall (I:prop) (T:trans) (P:prop) (k:nat),
-  ( forall (j:nat), j < k -> prop_k_init I T P j ) ->
-    prop_k_init_lf I T P k ->
-    prop_k_init I T P k.
+  ( forall (j:nat), j < k -> prop_nth_init I T P j ) ->
+    prop_nth_init_lf I T P k ->
+    prop_nth_init I T P k.
 Proof.
-  unfold prop_k_init.
+  unfold prop_nth_init.
   intros.
   (*assert ((forall (p1 p2 p3:Prop), ((p1 /\ p3 -> ~p2) <-> ~(p1 /\ p2 /\ p3)))) as A by tauto.
   apply A.
@@ -441,7 +441,7 @@ Proof.
   intros.
 
   assert (~loop_free T ss 0 k) as A0.
-  { unfold prop_k_init_lf in H0.
+  { unfold prop_nth_init_lf in H0.
     contradict H2.
     revert H1 H2.
     apply H0. }
@@ -493,8 +493,8 @@ Qed.
 
 Lemma safety_lf_path' :
   forall (I:prop) (T:trans) (P:prop) (k : nat),
-  ( forall (i : nat), i <= k -> prop_k_init_lf I T P i ) ->
-    forall (j : nat), j <= k -> prop_k_init I T P j.
+  ( forall (i : nat), i <= k -> prop_nth_init_lf I T P i ) ->
+    forall (j : nat), j <= k -> prop_nth_init I T P j.
 Proof.
   intros. revert j H0.
   induction k.
@@ -518,8 +518,8 @@ Qed.
 
 Lemma safety_lf_path :
   forall (I:prop) (T:trans) (P:prop),
-  ( forall (i : nat), prop_k_init_lf I T P i ) ->
-    forall (j : nat), prop_k_init I T P j.
+  ( forall (i : nat), prop_nth_init_lf I T P i ) ->
+    forall (j : nat), prop_nth_init I T P j.
 Proof.
   intros * H.
   induction j as [|j IHj].
