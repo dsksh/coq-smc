@@ -5,7 +5,7 @@ Require Import Omega.
 Definition k_ind_step (T : trans)
   (P : prop) (i: nat) : Prop :=
   forall ss : sseq,
-  loop_free T ss 0 i -> safety_nth_offset P ss 0 i -> P ss.[i].
+  path T ss 0 i -> safety_nth_offset P ss 0 i -> P ss.[i].
 
 Definition k_induction_post (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
   k_ind_step T P (S k) /\ safety_nth I T P (S k).
@@ -37,15 +37,12 @@ Lemma shift_k_ind_step :
   forall (T : trans) (P : prop) (i k : nat),
   k < i ->
   ( forall ss : sseq,
-     loop_free T ss 0 k -> safety_nth_offset P ss 0 k -> P ss.[k] ) ->
+     path T ss 0 k -> safety_nth_offset P ss 0 k -> P ss.[k] ) ->
   forall ss : sseq,
-  loop_free T ss (i-k) k -> safety_nth_offset P ss (i-k) k -> P ss.[i].
+  path T ss (i-k) k -> safety_nth_offset P ss (i-k) k -> P ss.[i].
 Proof.
   intros.
-  unfold loop_free in H1.
-  destruct H1 as [H1 H3].
   apply skipn_path in H1.
-  apply skipn_no_loop in H3.
   apply skipn_safety_nth_offset in H2.
   assert (i-k+k=i) as A by omega.
   rewrite <- A.
@@ -71,46 +68,11 @@ Proof.
     + firstorder; now rewrite Nat.add_succ_comm in *.
 Qed.
 
-(*Lemma lt_wf_ind_incl_prop' : 
-  forall (I : prop) (T : trans) (P : prop) (ss : sseq) (i k : nat),
-  k < i -> I ss.[0] /\ loop_free T ss 0 i ->
-  ( forall m : nat,
-    m < i -> I ss.[0] /\ loop_free T ss 0 m ->
-    P ss.[m] ) -> 
-      safety_nth_offset P ss (i-k) k.
-Proof.
-  intros * H H0 H1.
-  induction k as [|k IHk].
-  - unfold safety_nth_offset.
-    easy.
-  - apply cons_safety_nth_offset.
-    replace (i - S k) with (i - k - 1).
-    split.
-    + apply H1.
-      omega.
-      split.
-      * tauto.
-      * destruct H0 as [H0 H0'].
-        unfold loop_free in *.
-        assert (i = (i - k - 1) + (k + 1)) as A by omega.
-        rewrite A in H0'.
-        destruct H0' as [H2 H3].
-        apply split_path in H2.
-        apply split_no_loop in H3.
-        tauto.
-    + replace (S (i-k-1)) with (i-k).
-      apply IHk.
-      omega.
-      omega.
-    + omega.
-Qed.
-*)
-
 Lemma lt_wf_ind_incl_prop : 
   forall (I : prop) (T : trans) (P : prop) (ss : sseq) (i k : nat),
-  S k < i -> I ss.[0] /\ loop_free T ss 0 i ->
+  S k < i -> I ss.[0] /\ path T ss 0 i ->
   ( forall m : nat,
-    m < i -> I ss.[0] /\ loop_free T ss 0 m ->
+    m < i -> I ss.[0] /\ path T ss 0 m ->
     P ss.[m] ) -> 
       safety_nth_offset P ss (i - S k) (S k).
 Proof.
@@ -126,12 +88,9 @@ Proof.
       split.
       * tauto.
       * destruct H0 as [H0 H0'].
-        unfold loop_free in *.
         assert (i = (i - k' - 1) + (k' + 1)) as A by omega.
         rewrite A in H0'.
-        destruct H0' as [H2 H3].
-        apply split_path in H2.
-        apply split_no_loop in H3.
+        apply split_path in H0'.
         tauto.
     + replace (S (i-k'-1)) with (i-k').
       apply IHk.
@@ -142,12 +101,12 @@ Qed.
 
 (**)
 
-Theorem soundness_k_induction' :
+Theorem soundness_k_induction :
   forall (I : prop) (T : trans) (P : prop) (k : nat),
   k_induction_post I T P k -> 
-  forall (i : nat), prop_nth_init_lf I T P i.
+  forall (i : nat), prop_nth_init I T P i.
 Proof.
-  unfold prop_nth_init_lf.
+  unfold prop_nth_init.
   intros * H *.
   intros H0 H0'.
 
@@ -165,9 +124,9 @@ Proof.
   - destruct H as [H H3].
     unfold k_ind_step in H.
     assert (i = (i - S k) + S k) as A0 by omega.
-    assert (loop_free T ss 0 i) as A1 by auto.
+    assert (path T ss 0 i) as A1 by auto.
     rewrite A0 in A1; clear A0.
-    apply split_loop_free in A1.
+    apply split_path in A1.
     destruct A1 as [A1 A1'].
     assert (S k < i) as A2 by omega.
     apply shift_k_ind_step with (T:=T) (P:=P) (ss:=ss) in H2.
@@ -181,19 +140,6 @@ Proof.
     apply H1.
     apply H4.
     apply H5.
-Qed.
-
-Require Export Bmc.LoopFree.
-
-Theorem soundness_k_induction :
-  forall (I : prop) (T : trans) (P : prop) (k : nat),
-  k_induction_post I T P k -> 
-  forall (i : nat), prop_nth_init I T P i.
-Proof.
-  intros * H.
-  apply safety_lf_path.
-  apply soundness_k_induction' with (k := k).
-  apply H.
 Qed.
 
 Theorem soundness_k_induction1 :
@@ -214,7 +160,7 @@ Require Export Bmc.CoreConj.
 Definition k_ind_step_conj (T : trans)
   (P : prop) (k: nat) : Prop :=
   forall ss : sseq,
-  ~(loop_free T ss 0 k /\ safety_nth_offset P ss 0 k /\ ~P ss.[k]).
+  ~(path T ss 0 k /\ safety_nth_offset P ss 0 k /\ ~P ss.[k]).
 
 Lemma k_ind_step_conj_eq :
   forall (T:trans) (P:prop) (k:nat),
