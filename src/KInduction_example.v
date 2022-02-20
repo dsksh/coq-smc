@@ -49,8 +49,6 @@ Proof.
       smt solve; apply by_smt.
     + intros.
       smt solve; apply by_smt.
-    + intros.
-      smt solve; apply by_smt.
 Qed.
 
 Goal k_induction_post_conj ex2_I ex2_T ex2_P 2.
