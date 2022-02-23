@@ -3,14 +3,14 @@ Require Import Omega.
 
 
 Definition backward_post (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
-  lasso_bwd T P (S k) /\ safety_nth I T P (S k).
+  lasso_bwd T P k /\ safety_nth I T P k.
 
 (* *)
 
 Local Theorem case1 :
   forall (I : prop) (T : trans) (P : prop) (k : nat),
   backward_post I T P k -> 
-    forall (i : nat), (i <= S k) -> prop_nth_init_lf I T P i.
+    forall (i : nat), (i <= k) -> prop_nth_init_lf I T P i.
 Proof.
   intros * H * H0 *.
   unfold backward_post in H.
@@ -52,7 +52,7 @@ Proof.
   apply split_loop_free in H2.
   destruct H2 as [H2 H3].
   revert H3.
-  apply case2_2' with (i := i) (k := k) (ss := ss).
+  apply case2_2' with (i:=i) (k:=k) (ss:=ss).
   apply H.
   apply H0.
 Qed.
@@ -60,12 +60,12 @@ Qed.
 Local Lemma case2 :
   forall (I : prop) (T : trans) (P : prop) (k : nat),
   backward_post I T P k -> 
-  forall (i : nat), (i > S k) -> prop_nth_init_lf I T P i.
+  forall (i : nat), (i > k) -> prop_nth_init_lf I T P i.
 Proof.
   intros * H * H0.
   unfold backward_post in H.
   destruct H as [H H1].
-  now apply case2_2 with (k := S k).
+  now apply case2_2 with (k:=k).
 Qed.
 
 (**)
@@ -76,7 +76,7 @@ Theorem soundness_backward' :
   forall (i : nat), prop_nth_init_lf I T P i.
 Proof.
   intros * H *.
-  destruct (Nat.le_gt_cases i (S k)) as [H0|H0].
+  destruct (Nat.le_gt_cases i k) as [H0|H0].
   - revert H0.
     now apply case1.
   - revert H0.
@@ -92,7 +92,7 @@ Theorem soundness_backward :
 Proof.
   intros * H.
   apply safety_lf_path.
-  apply soundness_backward' with (k := k).
+  apply soundness_backward' with (k:=k).
   apply H.
 Qed.
 
@@ -112,7 +112,7 @@ Qed.
 Require Export Bmc.CoreConj.
 
 Definition backward_post_conj (I : prop) (T : trans) (P : prop) (k: nat) : Prop :=
-  lasso_bwd_conj T P (S k) /\ safety_nth_conj I T P (S k).
+  lasso_bwd_conj T P k /\ safety_nth_conj I T P k.
 
 Lemma backward_post_conj_eq :
   forall (I:prop) (T:trans) (P:prop) (k:nat),
