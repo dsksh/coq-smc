@@ -149,7 +149,7 @@ Fixpoint spseq_sseq (I:prop) (T:trans) (r:spseq) (ss:sseq) (i:nat) :=
 (**)
 
 Lemma spseq_sseq_path' :
-  forall (I:prop) (T:trans) (P:prop),
+  forall (I:prop) (T:trans),
   forall r:spseq,
   forall ss: sseq,
   (*(forall s, I s <-> r 0 s) ->*)
@@ -205,7 +205,7 @@ Proof.
 Qed.
 
 Lemma spseq_sseq_path'' :
-  forall (I:prop) (T:trans) (P:prop),
+  forall (I:prop) (T:trans),
   forall r:spseq,
   forall ss: sseq,
   (*(forall s, I s <-> r 0 s) ->*)
@@ -240,10 +240,11 @@ Qed.
 (**)
 
 Definition pdr_post_f (I:prop) (T:trans) (P:prop) (k:nat) : Prop :=
-  (forall ss, I ss.[0] ->P ss.[0]) /\
+  (forall ss, I ss.[0] -> P ss.[0]) /\
   (forall ss, I ss.[0] -> T ss.[0] ss.[1] -> P ss.[1]) /\
   (forall (r:spseq) (ss:sseq),
-    r k ss.[k] -> T ss.[k] ss.[S k] -> spseq_sseq I T r ss k -> P ss.[S k] ).
+    spseq_sseq I T r ss k -> P ss.[k]
+    (*-> r k ss.[k] -> T ss.[k] ss.[S k] -> P ss.[S k]*) ).
 
 Theorem pdr_soundness_f :
   forall (I:prop) (T:trans) (P:prop),
@@ -265,6 +266,20 @@ Proof.
     apply H0.
     simpl.
     split; auto.
+
+  - intros * H0.
+    apply spseq_sseq_path' in H0.
+    destruct H0.
+    destruct k.
+    + apply H.
+      apply H0.
+      simpl; auto.
+    + apply H.
+      apply H0.
+      assert (k < S k) by omega.
+      apply H1 in H2.
+      apply H2.
+(*
   - intros * H0 H1 H2.
     apply spseq_sseq_path' in H2.
     destruct H2.
@@ -282,6 +297,7 @@ Proof.
       apply H4.
       apply H1.
     + auto.
+*)
 Qed.
 
 Definition of_sseq (ss:sseq) (i:nat) (s:state) : Prop :=
@@ -299,13 +315,26 @@ Proof.
   contradict H.
   intros * H2 H3.
   destruct i.
-  specialize H with 0.
-  apply H; apply H2.
-  specialize H with i.
-  do 2 destruct H as [?H H].
-  remember (of_sseq ss) as r.
-  (*assert (~(r i ss.[i] /\ T ss.[i] ss.[i+1] /\ ~P ss.[i+1] /\ spseq_sseq I T r ss i)) by apply H.*)
-  apply H with (r:=r).
+  - specialize H with 0.
+    apply H; apply H2.
+  - specialize H with (S i).
+    do 2 destruct H as [?H H].
+    remember (of_sseq ss) as r.
+    (*assert (~(r i ss.[i] /\ T ss.[i] ss.[i+1] /\ ~P ss.[i+1] /\ spseq_sseq I T r ss i)) by apply H.*)
+    apply H with (r:=r).
+    apply spseq_sseq_path''.
+    split.
+    apply H2.
+    intros i0 H4.
+    split.
+    + assert (S i = (i0 + 1) + (i - i0)) as A by omega.
+      rewrite -> A in H3.
+      apply split_path in H3; destruct H3.
+      apply H3.
+    + rewrite -> Heqr.
+      unfold of_sseq.
+      reflexivity.
+(*
   - rewrite -> Heqr.
     unfold of_sseq.
     reflexivity.
@@ -324,6 +353,7 @@ Proof.
     + rewrite -> Heqr.
       unfold of_sseq.
       reflexivity.
+*)
 Qed.
 
 (* eof *)
