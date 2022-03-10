@@ -1,4 +1,4 @@
-# A SAT-based Model Checking in Coq
+# SAT-based Model Checking in Coq
 
 Specification of SMT-based model checking methods in Coq.
 We aim to verify the correctness of the methods.
